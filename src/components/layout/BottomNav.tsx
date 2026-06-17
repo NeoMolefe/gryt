@@ -11,7 +11,7 @@ const TABS = [
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]">
+    <nav id="tutorial-bottom-nav" className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto flex max-w-md items-center justify-around px-2 py-2">
         {TABS.map(({ to, label, icon: Icon }) => (
           <NavLink

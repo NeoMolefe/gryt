@@ -62,6 +62,7 @@ export function useDashboardData() {
     queryKey: ['plan', userId],
     queryFn: () => fetchActivePlan(userId!),
     enabled: !!userId,
+    retry: 1,
   })
 
   const plan = planQuery.data ?? null
@@ -70,6 +71,7 @@ export function useDashboardData() {
     queryKey: ['workouts', plan?.id],
     queryFn: () => fetchWorkouts(plan!.id),
     enabled: !!plan?.id,
+    retry: 1,
   })
 
   const checkinsQuery = useQuery({
@@ -236,8 +238,15 @@ export function useDashboardData() {
     },
   })
 
+  const queryError =
+    planQuery.error instanceof Error ? planQuery.error.message :
+    workoutsQuery.error instanceof Error ? workoutsQuery.error.message :
+    checkinsQuery.error instanceof Error ? checkinsQuery.error.message :
+    null
+
   return {
     isLoading: planQuery.isLoading || workoutsQuery.isLoading || checkinsQuery.isLoading,
+    error: queryError,
     profile,
     plan,
     workouts,

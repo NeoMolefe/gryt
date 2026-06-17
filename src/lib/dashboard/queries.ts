@@ -13,10 +13,7 @@ export async function fetchActivePlan(userId: string): Promise<Plan | null> {
     .limit(1)
     .maybeSingle()
 
-  if (error) {
-    console.error('Failed to fetch active plan:', error.message)
-    return null
-  }
+  if (error) throw new Error(error.message)
 
   return data as Plan | null
 }
@@ -29,10 +26,7 @@ export async function fetchWorkouts(planId: string): Promise<Workout[]> {
     .order('week_number', { ascending: true })
     .order('day_number', { ascending: true })
 
-  if (error) {
-    console.error('Failed to fetch workouts:', error.message)
-    return []
-  }
+  if (error) throw new Error(error.message)
 
   return (data ?? []) as Workout[]
 }

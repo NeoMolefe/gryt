@@ -5,30 +5,43 @@ import type { OnboardingData } from '@/types/onboarding'
 
 export async function submitOnboarding(
   userId: string,
+  email: string | null,
   data: OnboardingData,
 ): Promise<void> {
-  const { error: profileError } = await supabase
+  // Use upsert so this works even when no profile row exists yet.
+  // Profile creation only happens here — SignUp.tsx has no INSERT.
+  // email must be present because it is NOT NULL in the DB; the INSERT
+  // path requires it, even though UPDATE would preserve an existing value.
+  const profilePayload = {
+    id: userId,
+    email,
+    first_name: data.firstName,
+    age: Number(data.age),
+    height_cm: Number(data.heightCm),
+    weight_kg: Number(data.weightKg),
+    gender: data.gender,
+    experience: data.experience,
+    primary_goal: data.primaryGoal,
+    secondary_goals: data.secondaryGoals,
+    availability_days: data.availabilityDays,
+    session_duration_minutes: data.sessionDuration,
+    equipment: data.equipment,
+    training_styles: data.trainingStyle,
+    injury_history: data.injuryHistory.trim() || null,
+    event_type: data.eventType,
+    event_date: data.eventDate,
+    goal_time_minutes: data.goalTimeMinutes,
+    onboarding_completed: true,
+  }
+
+  console.log('[submitOnboarding] full upsert payload:', JSON.stringify(profilePayload, null, 2))
+
+  const { data: upsertData, error: profileError } = await supabase
     .from('profiles')
-    .update({
-      first_name: data.firstName,
-      age: Number(data.age),
-      height_cm: Number(data.heightCm),
-      weight_kg: Number(data.weightKg),
-      gender: data.gender,
-      experience: data.experience,
-      primary_goal: data.primaryGoal,
-      secondary_goals: data.secondaryGoals,
-      availability_days: data.availabilityDays,
-      session_duration_minutes: data.sessionDuration,
-      equipment: data.equipment,
-     training_styles: data.trainingStyle,
-      injury_history: data.injuryHistory.trim() || null,
-      event_type: data.eventType,
-      event_date: data.eventDate,
-      goal_time_minutes: data.goalTimeMinutes,
-      onboarding_completed: true,
-    })
-    .eq('id', userId)
+    .upsert(profilePayload, { onConflict: 'id' })
+    .select('id, onboarding_completed')
+
+  console.log('[submitOnboarding] upsert result:', { data: upsertData, error: profileError })
 
   if (profileError) {
     throw new Error(profileError.message)

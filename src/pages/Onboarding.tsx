@@ -70,7 +70,7 @@ export function Onboarding() {
     setIsSubmitting(true)
 
     try {
-      await submitOnboarding(session.user.id, data)
+      await submitOnboarding(session.user.id, session.user.email ?? null, data)
       await refreshProfile()
       if (locationState?.isRegeneration) {
         navigate('/dashboard', {

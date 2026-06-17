@@ -42,4 +42,5 @@ export interface Profile {
   goal_time_minutes?: number | null
   xp_total?: number | null
   injury_flags?: InjuryFlag[] | null
+  has_seen_dashboard_tutorial?: boolean | null
 }

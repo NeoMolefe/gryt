@@ -24,6 +24,7 @@ import { WeeklyScheduleStrip } from '@/components/dashboard/WeeklyScheduleStrip'
 import { WorkoutCard } from '@/components/dashboard/WorkoutCard'
 import { XpFloat } from '@/components/dashboard/XpFloat'
 import { BadgeUnlockOverlay } from '@/components/gamification/BadgeUnlockOverlay'
+import { TutorialOverlay } from '@/components/onboarding/TutorialOverlay'
 
 function weeksUntilEvent(eventDate: string): number {
   const event = new Date(eventDate)
@@ -43,6 +44,7 @@ function getInitials(firstName: string | null | undefined, fullName: string | nu
 export function Dashboard() {
   const {
     isLoading,
+    error,
     profile,
     plan,
     streak,
@@ -65,6 +67,7 @@ export function Dashboard() {
   } = useDashboardData()
 
   const session = useAuthStore((state) => state.session)
+  const refreshProfile = useAuthStore((state) => state.refreshProfile)
   const { notifications, unreadCount, markRead } = useNotifications(session?.user.id ?? null)
 
   const location = useLocation()
@@ -72,14 +75,49 @@ export function Dashboard() {
     (location.state as { toast?: string } | null)?.toast ?? null,
   )
 
+  // Local dismiss flag so the overlay vanishes immediately on Skip/Done
+  // without waiting for the async refreshProfile to complete.
+  const [tutorialDismissed, setTutorialDismissed] = useState(false)
+
   const [isCheckInOpen, setIsCheckInOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [previewDay, setPreviewDay] = useState<ScheduleDay | null>(null)
 
-  if (isLoading || !profile || !plan) {
+  if (isLoading) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <p className="text-text-secondary">Loading your dashboard...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-3 px-6">
+        <p className="text-sm font-semibold" style={{ color: 'var(--color-danger-text)' }}>Failed to load dashboard</p>
+        <p className="max-w-xs text-center text-xs text-text-secondary">{error}</p>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-3 px-6">
+        <p className="text-sm font-semibold text-text-primary">Profile not found</p>
+        <p className="max-w-xs text-center text-xs text-text-secondary">
+          Sign out and back in to reload your account.
+        </p>
+      </div>
+    )
+  }
+
+  if (!plan) {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-3 px-6">
+        <p className="text-sm font-semibold text-text-primary">No active training plan</p>
+        <p className="max-w-xs text-center text-xs text-text-secondary">
+          Go to Settings to generate your plan.
+        </p>
       </div>
     )
   }
@@ -123,19 +161,25 @@ export function Dashboard() {
           />
         )}
 
-        <div className="flex items-center justify-center">
+        <div id="tutorial-readiness-checkin" className="flex items-center justify-center">
           <ReadinessRing score={todayCheckin?.score ?? null} onCheckIn={() => setIsCheckInOpen(true)} />
         </div>
 
-        {isRestDay && mobilityRoutine ? (
-          <RestDayCard phase={currentPhase} routine={mobilityRoutine} recoveryTip={recoveryTip} onStart={() => {}} />
-        ) : todaysWorkout ? (
-          <WorkoutCard workout={todaysWorkout} onStart={() => {}} />
+        {(isRestDay && mobilityRoutine) || todaysWorkout ? (
+          <div id="tutorial-todays-workout">
+            {isRestDay && mobilityRoutine ? (
+              <RestDayCard phase={currentPhase} routine={mobilityRoutine} recoveryTip={recoveryTip} onStart={() => {}} />
+            ) : (
+              <WorkoutCard workout={todaysWorkout!} onStart={() => {}} />
+            )}
+          </div>
         ) : null}
 
-        <WeeklyScheduleStrip days={weekSchedule} onSelectDay={setPreviewDay} />
+        <div id="tutorial-weekly-strip">
+          <WeeklyScheduleStrip days={weekSchedule} onSelectDay={setPreviewDay} />
+        </div>
 
-        <div className="relative">
+        <div id="tutorial-stats-row" className="relative">
           <StatsRow phase={currentPhase} streak={streak} xpTotal={xpTotal} badge={badge} />
           <XpFloat amount={xpToast} />
         </div>
@@ -171,6 +215,16 @@ export function Dashboard() {
       <BadgeUnlockOverlay badge={unlockedBadge} onDismiss={dismissUnlockedBadge} />
 
       <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
+
+      {!profile.has_seen_dashboard_tutorial && !tutorialDismissed && (
+        <TutorialOverlay
+          userId={profile.id}
+          onDone={() => {
+            setTutorialDismissed(true)
+            void refreshProfile()
+          }}
+        />
+      )}
     </motion.div>
   )
 }
