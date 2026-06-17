@@ -1,0 +1,279 @@
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { History, RotateCcw } from 'lucide-react'
+import { useAuthStore } from '@/store/authStore'
+import { ChatBubble } from '@/components/kwazi/ChatBubble'
+import { EscalationCard } from '@/components/kwazi/EscalationCard'
+import { HistorySheet } from '@/components/kwazi/HistorySheet'
+import { MessageInput } from '@/components/kwazi/MessageInput'
+import { RestartModal } from '@/components/kwazi/RestartModal'
+import { loadActiveChat, saveActiveChat, clearActiveChat } from '@/lib/kwazi/chatStorage'
+import { archiveChat, deleteChatHistoryEntry, fetchChatHistory, fetchKwaziRemaining, sendKwaziMessage } from '@/lib/kwazi/queries'
+import type { ChatMessage, KwaziChatState } from '@/types/kwazi.types'
+
+const REMAINING_WARNING_THRESHOLD = 3
+
+function createGreeting(firstName: string): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    content: `I'm Kwazi. Your Intelligent Training Coach. Welcome back, ${firstName}. How are you feeling today?`,
+    timestamp: new Date().toISOString(),
+  }
+}
+
+function createFreshChat(userId: string, firstName: string): KwaziChatState {
+  return {
+    userId,
+    messages: [createGreeting(firstName)],
+    pendingSwap: null,
+    startedAt: new Date().toISOString(),
+  }
+}
+
+export function Kwazi() {
+  const session = useAuthStore((state) => state.session)
+  const profile = useAuthStore((state) => state.profile)
+  const userId = session?.user.id ?? null
+  const location = useLocation()
+  const navigate = useNavigate()
+  const injuryMessage = (location.state as { injuryMessage?: string } | null)?.injuryMessage ?? null
+  const firstName = profile?.first_name ?? 'there'
+  const queryClient = useQueryClient()
+
+  const [chat, setChat] = useState<KwaziChatState | null>(null)
+  const [inputValue, setInputValue] = useState('')
+  const [isSending, setIsSending] = useState(false)
+  const [remaining, setRemaining] = useState(10)
+  const [blocked, setBlocked] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [restartOpen, setRestartOpen] = useState(false)
+  const [isRestarting, setIsRestarting] = useState(false)
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const historyQuery = useQuery({
+    queryKey: ['kwazi-history', userId],
+    queryFn: () => fetchChatHistory(userId!),
+    enabled: !!userId && historyOpen,
+  })
+
+  useEffect(() => {
+    if (!userId) return
+
+    void (async () => {
+      const existing = loadActiveChat(userId)
+      if (existing) {
+        setChat(existing)
+      } else {
+        const fresh = createFreshChat(userId, firstName)
+        setChat(fresh)
+        saveActiveChat(fresh)
+      }
+
+      const value = await fetchKwaziRemaining(userId)
+      setRemaining(value)
+      setBlocked(value <= 0)
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
+
+  // Auto-send a pre-loaded injury message (e.g. after updating injury info in Settings).
+  useEffect(() => {
+    if (!chat || !injuryMessage) return
+    navigate('.', { replace: true, state: null })
+    void handleSendText(injuryMessage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat, injuryMessage])
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+  }, [chat?.messages.length])
+
+  async function handleSendText(text: string) {
+    if (!chat || !userId || !text.trim() || isSending || blocked) return
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: text.trim(),
+      timestamp: new Date().toISOString(),
+    }
+
+    const nextMessages = [...chat.messages, userMessage]
+    const optimistic: KwaziChatState = { ...chat, messages: nextMessages }
+    setChat(optimistic)
+    saveActiveChat(optimistic)
+    setInputValue('')
+    setIsSending(true)
+
+    try {
+      const response = await sendKwaziMessage({
+        userId,
+        messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+        pendingSwap: chat.pendingSwap,
+      })
+
+      setRemaining(response.remaining)
+      setBlocked(response.blocked)
+
+      if (response.blocked) {
+        const reverted: KwaziChatState = { ...optimistic, messages: chat.messages }
+        setChat(reverted)
+        saveActiveChat(reverted)
+        return
+      }
+
+      const assistantMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: response.reply ?? "Kwazi's listening.",
+        timestamp: new Date().toISOString(),
+        chips: response.chips ?? null,
+        escalate: response.escalate ?? false,
+      }
+
+      const updated: KwaziChatState = {
+        ...optimistic,
+        messages: [...optimistic.messages, assistantMessage],
+        pendingSwap: response.pendingSwap ?? null,
+      }
+      setChat(updated)
+      saveActiveChat(updated)
+
+      if (response.swapApplied) {
+        void queryClient.invalidateQueries({ queryKey: ['plan'] })
+        void queryClient.invalidateQueries({ queryKey: ['workouts'] })
+        void queryClient.invalidateQueries({ queryKey: ['workout'] })
+      }
+    } catch {
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: "Kwazi's having trouble connecting right now — give it a moment and try again.",
+        timestamp: new Date().toISOString(),
+      }
+      const updated: KwaziChatState = { ...optimistic, messages: [...optimistic.messages, errorMessage] }
+      setChat(updated)
+      saveActiveChat(updated)
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  function handleSend() {
+    void handleSendText(inputValue)
+  }
+
+  function handleChipSelect(value: string) {
+    void handleSendText(value)
+  }
+
+  async function handleRestartConfirm() {
+    if (!chat || !userId) return
+    setIsRestarting(true)
+    await archiveChat(userId, chat.messages, chat.startedAt)
+    clearActiveChat(userId)
+    const fresh = createFreshChat(userId, firstName)
+    setChat(fresh)
+    saveActiveChat(fresh)
+    setIsRestarting(false)
+    setRestartOpen(false)
+    void queryClient.invalidateQueries({ queryKey: ['kwazi-history', userId] })
+  }
+
+  async function handleDeleteHistory(id: string) {
+    await deleteChatHistoryEntry(id)
+    void queryClient.invalidateQueries({ queryKey: ['kwazi-history', userId] })
+  }
+
+  if (!chat) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-background">
+        <p className="text-text-secondary">Loading Kwazi...</p>
+      </div>
+    )
+  }
+
+  const lastMessageId = chat.messages[chat.messages.length - 1]?.id
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+      className="flex min-h-svh flex-col bg-background"
+    >
+      <header className="flex items-center justify-between border-b border-border px-6 py-4">
+        <h1 className="text-lg font-extrabold tracking-widest text-text-primary">KWAZI</h1>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen(true)}
+            aria-label="Chat history"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary hover:text-text-primary"
+          >
+            <History size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setRestartOpen(true)}
+            aria-label="Restart conversation"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary hover:text-text-primary"
+          >
+            <RotateCcw size={20} />
+          </button>
+        </div>
+      </header>
+
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        {chat.messages.map((message) => (
+          <div key={message.id}>
+            <ChatBubble
+              message={message}
+              onChipSelect={handleChipSelect}
+              chipsDisabled={isSending || blocked || message.id !== lastMessageId}
+            />
+            {message.escalate && (
+              <div className="mt-2">
+                <EscalationCard />
+              </div>
+            )}
+          </div>
+        ))}
+        {isSending && <p className="px-1 text-xs text-text-muted">Kwazi is typing...</p>}
+      </div>
+
+      {blocked && (
+        <div className="border-t border-phase-peak/40 bg-phase-peak/10 px-4 py-3 text-center text-sm text-phase-peak">
+          You've reached your 10 message limit for today. Your Kwazi resets at midnight.
+        </div>
+      )}
+
+      <div className="border-t border-border px-4 py-3 pb-24">
+        <MessageInput value={inputValue} onChange={setInputValue} onSend={handleSend} disabled={isSending || blocked} />
+        {!blocked && remaining <= REMAINING_WARNING_THRESHOLD && (
+          <p className="mt-2 text-center text-xs text-text-muted">
+            {remaining} Kwazi message{remaining === 1 ? '' : 's'} remaining today
+          </p>
+        )}
+      </div>
+
+      <RestartModal
+        isOpen={restartOpen}
+        isRestarting={isRestarting}
+        onConfirm={() => void handleRestartConfirm()}
+        onCancel={() => setRestartOpen(false)}
+      />
+
+      <HistorySheet
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        entries={historyQuery.data ?? []}
+        onDelete={(id) => void handleDeleteHistory(id)}
+      />
+    </motion.div>
+  )
+}

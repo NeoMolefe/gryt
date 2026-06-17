@@ -1,0 +1,266 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Theme tokens ─── */
+:root {
+  /* Dark mode (default) — identical to GRYT's current hardcoded colours */
+  --color-bg: #0A0A0A;
+  --color-card: #111111;
+  --color-card-high: #161616;
+  --color-card-low: #0D0D0D;
+  --color-elevated: #1A1A1A;
+  --color-border: #2A2A2A;
+  --color-border-strong: #3A3A3A;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #888888;
+  --color-text-muted: #555555;
+  --color-brand-orange: #FF5C1A;
+  --color-brand-orange-hover: #E04D10;
+  --color-phase-foundation: #3B82F6;
+  --color-phase-build: #F59E0B;
+  --color-phase-peak: #EF4444;
+  --color-phase-deload: #22C55E;
+  --color-success-bg: rgba(34, 197, 94, 0.1);
+  --color-success-text: #22C55E;
+  --color-warning-bg: rgba(245, 158, 11, 0.1);
+  --color-warning-text: #F59E0B;
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
+  --color-danger-text: #EF4444;
+  --color-shadow: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='light'] {
+  /* Light mode — deliberately designed, not an inversion */
+  --color-bg: #FAFAFA;
+  --color-card: #FFFFFF;
+  --color-card-high: #F7F7F8;
+  --color-card-low: #FAFAFA;
+  --color-elevated: #F4F4F5;
+  --color-border: #E5E5E5;
+  --color-border-strong: #D4D4D4;
+  --color-text-primary: #18181B;
+  --color-text-secondary: #6B6B70;
+  --color-text-muted: #A0A0A5;
+  --color-brand-orange: #FF5C1A;
+  --color-brand-orange-hover: #E04D10;
+  --color-phase-foundation: #2563EB;
+  --color-phase-build: #D97706;
+  --color-phase-peak: #DC2626;
+  --color-phase-deload: #16A34A;
+  --color-success-bg: rgba(34, 197, 94, 0.08);
+  --color-success-text: #16A34A;
+  --color-warning-bg: rgba(217, 119, 6, 0.08);
+  --color-warning-text: #D97706;
+  --color-danger-bg: rgba(220, 38, 38, 0.08);
+  --color-danger-text: #DC2626;
+  --color-shadow: rgba(0, 0, 0, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100svh;
+  background-color: var(--color-bg);
+}
+
+/* Marketing landing page: break out of the mobile shell max-width */
+#root.marketing {
+  max-width: none;
+  margin: 0;
+}
+
+/* ─── Marketing section inner padding ─── */
+.mkt-inner {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding-left: 80px;
+  padding-right: 80px;
+}
+
+@media (max-width: 1199px) {
+  .mkt-inner {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+@media (max-width: 809px) {
+  .mkt-inner {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+/* ─── Marketing responsive grid + layout ─── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.methodology-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.how-it-works-sticky {
+  position: sticky;
+  top: 120px;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1199px) {
+  .methodology-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 809px) {
+  .features-grid,
+  .methodology-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .how-it-works-layout,
+  .faq-layout {
+    flex-direction: column !important;
+    gap: 40px !important;
+  }
+
+  .how-it-works-sticky {
+    position: static;
+    align-self: auto;
+    flex: none !important;
+  }
+
+  .footer-top {
+    flex-direction: column !important;
+    gap: 24px !important;
+  }
+
+  .marketing-page section {
+    padding-top: 64px !important;
+    padding-bottom: 64px !important;
+  }
+}
+
+/* ─── Hero composition — responsive card positioning ─── */
+.hero-card-l,
+.hero-card-r {
+  display: none;
+}
+
+.hero-cards-inline {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+
+@media (min-width: 810px) {
+  .hero-composition {
+    min-height: 680px;
+  }
+
+  .hero-card-l {
+    display: block;
+    position: absolute;
+    left: 4%;
+    top: 32%;
+    z-index: 2;
+  }
+
+  .hero-card-r {
+    display: block;
+    position: absolute;
+    right: 4%;
+    top: 52%;
+    z-index: 2;
+  }
+
+  .hero-cards-inline {
+    display: none;
+  }
+}
+
+/* Marketing nav: floating pill, responsive positioning */
+.marketing-nav {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+}
+
+@media (max-width: 1199px) {
+  .marketing-nav {
+    transform: none;
+    left: 40px;
+    right: 40px;
+    width: auto;
+  }
+}
+
+@media (max-width: 809px) {
+  .marketing-nav {
+    left: 20px;
+    right: 20px;
+  }
+}
+
+/* Marketing focus-visible: GRYT orange outline */
+.marketing-page *:focus-visible {
+  outline: 2px solid #ff5c1a;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Skip link for keyboard users */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  background: #ff5c1a;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 0 0 8px 0;
+  z-index: 9999;
+  font-size: 14px;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
