@@ -61,7 +61,7 @@ export interface WorkoutSession {
   notes?: string[]
   // NOTE for UI: when hyrox_simulation is present on a HYROX Simulation session,
   // render it as a sequential run/station checklist instead of the standard exercise logger.
-  hyrox_simulation?: HyroxSimulationStation[]
+  hyrox_simulation?: HyroxSimulationStation[] | null
 }
 
 export interface Plan {
@@ -83,5 +83,4 @@ export interface Workout extends WorkoutSession {
   id: string
   plan_id: string
   user_id: string
-  hyrox_simulation?: HyroxSimulationStation[] | null
 }
