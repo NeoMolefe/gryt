@@ -20,7 +20,7 @@ export function classifyArchetype(primaryGoal: PrimaryGoal, eventType: EventType
     case 'event_specific': {
       if (eventType && ENDURANCE_EVENTS.includes(eventType)) return 'Endurance Athlete'
       if (eventType && ATHLETIC_EVENTS.includes(eventType)) return 'Athletic Performance'
-      if (eventType === 'hyrox') return 'Hybrid Performer'
+      if (eventType === 'hyrox') return 'HYROX Competitor'
       return 'General Fitness'
     }
     case 'general_fitness':

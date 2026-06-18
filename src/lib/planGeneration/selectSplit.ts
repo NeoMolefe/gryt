@@ -99,6 +99,18 @@ const ARCHETYPE_TEMPLATES: Record<Archetype, SessionTemplate[]> = {
     { session_name: 'Strength Session II', focus: ['lower', 'upper_push', 'upper_pull'] },
     { session_name: 'Conditioning Session II', focus: ['conditioning', 'vo2max', 'sprint'] },
   ],
+  // selectExercises.ts has a dedicated branch for this archetype that ignores
+  // `focus` entirely — running + station exercises + 2-3 supporting lifts on
+  // every day. `focus` here only documents intent and keeps names readable.
+  'HYROX Competitor': [
+    { session_name: 'HYROX Stations + Run', focus: ['conditioning', 'loaded_carry', 'plyometric'] },
+    { session_name: 'Strength Support', focus: ['lower'] },
+    { session_name: 'HYROX Stations + Run II', focus: ['conditioning', 'loaded_carry', 'plyometric'] },
+    { session_name: 'HYROX Simulation', focus: ['conditioning', 'vo2max'] },
+    { session_name: 'Strength Support II', focus: ['lower'] },
+    { session_name: 'HYROX Stations + Run III', focus: ['conditioning', 'loaded_carry', 'plyometric'] },
+    { session_name: 'Full Hybrid Session', focus: ['conditioning', 'loaded_carry', 'lower'] },
+  ],
 }
 
 export function selectSplit(

@@ -10,6 +10,7 @@ export type Archetype =
   | 'Fat Loss'
   | 'Functional Strength & Conditioning'
   | 'Athletic Performance'
+  | 'HYROX Competitor'
 
 export type Equipment = 'full_gym' | 'home_gym' | 'bodyweight'
 

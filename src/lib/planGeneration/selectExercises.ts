@@ -21,6 +21,19 @@ export interface SelectedExercises {
 
 const CONDITIONING_CATEGORIES = ['conditioning', 'vo2max', 'sprint']
 
+// Supporting strength movements for HYROX Competitor sessions — capped at 3,
+// chosen because each transfers directly to a HYROX station pattern
+// (hip hinge → sled pull/deadlift carries, squat → wall ball/sled push,
+// single-leg → lunges station), not generic strength-day filler.
+const HYROX_SUPPORTING_LIFT_NAMES = ['Romanian Deadlift', 'Front Squat', 'Bulgarian Split Squat']
+const MAX_HYROX_SUPPORTING_LIFTS = 3
+const MAX_HYROX_STATIONS = 5
+
+// Short interval-style running only — the 30-60min Zone 2 / Tempo / Long Run
+// options in the library are sized for endurance-athlete sessions and would
+// crowd out station volume if used as a HYROX session's opening block.
+const HYROX_RUNNING_NAMES = ['Interval Run 6×800m', 'Interval Run 8×400m']
+
 function rotate<T>(arr: T[], offset: number): T[] {
   if (arr.length === 0) return arr
   const o = ((offset % arr.length) + arr.length) % arr.length
@@ -40,7 +53,49 @@ function sessionNameKeyword(sessionName: string): string | null {
   return match ? match[0].toLowerCase() : null
 }
 
+// HYROX sessions are structured fundamentally differently from the standard
+// strength-first template: running is the primary conditioning block, HYROX
+// station exercises (sled push/pull, wall ball, farmers carry, burpee broad
+// jump, sandbag lunges, ski erg, rowing) form the main body of the session,
+// and traditional main_lifts are limited to a handful of supporting lifts
+// that directly transfer to those stations.
+function selectHyroxExercises(input: SelectExercisesInput): SelectedExercises {
+  const { equipment, phase, dayIndex, previousAccessoryNames } = input
+  const archetype: Archetype = 'HYROX Competitor'
+
+  const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase))
+
+  const mobilityPool = available.filter((exercise) => exercise.category === 'mobility')
+  const warm_up = rotate(mobilityPool, dayIndex).slice(0, 3)
+  const cooldown = rotate(mobilityPool, dayIndex + 3).slice(0, 2)
+
+  // Running is the primary conditioning block — selected ahead of stations.
+  const runningPool = available.filter((exercise) => HYROX_RUNNING_NAMES.includes(exercise.name))
+  const conditioning = rotate(runningPool, dayIndex)[0] ?? null
+
+  // HYROX station exercises form the main body of the session.
+  const stationPool = rotate(available.filter((exercise) => exercise.is_hyrox_station), dayIndex)
+  const nonPreviousStations = stationPool.filter((exercise) => !previousAccessoryNames.includes(exercise.name))
+  const previousStations = stationPool.filter((exercise) => previousAccessoryNames.includes(exercise.name))
+  const stationSelectionPool =
+    nonPreviousStations.length >= MAX_HYROX_STATIONS ? nonPreviousStations : [...nonPreviousStations, ...previousStations]
+  const accessories = stationSelectionPool.slice(0, Math.min(MAX_HYROX_STATIONS, stationSelectionPool.length))
+
+  // Traditional main_lifts capped at 2-3 supporting strength movements.
+  const supportingLiftPool = rotate(
+    available.filter((exercise) => HYROX_SUPPORTING_LIFT_NAMES.includes(exercise.name)),
+    dayIndex,
+  )
+  const main_lifts = supportingLiftPool.slice(0, Math.min(MAX_HYROX_SUPPORTING_LIFTS, supportingLiftPool.length))
+
+  return { warm_up, main_lifts, accessories, conditioning, cooldown }
+}
+
 export function selectExercises(input: SelectExercisesInput): SelectedExercises {
+  if (input.archetype === 'HYROX Competitor') {
+    return selectHyroxExercises(input)
+  }
+
   const { template, archetype, equipment, phase, dayIndex, previousAccessoryNames } = input
 
   const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase))
