@@ -98,7 +98,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     name: 'Trap Bar Deadlift',
     category: 'lower',
     equipment: ['full_gym'],
-    archetypes: ['Strength Athlete', 'Hybrid Performer', 'Athletic Performance', 'General Fitness', 'Fat Loss', 'Functional Strength & Conditioning'],
+    archetypes: ['Strength Athlete', 'Hybrid Performer', 'Athletic Performance', 'General Fitness', 'Fat Loss', 'Functional Strength & Conditioning', 'HYROX Competitor'],
     phases: ALL_PHASES,
     default_sets: 4,
     default_reps: 6,

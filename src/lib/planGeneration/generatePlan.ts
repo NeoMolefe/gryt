@@ -62,6 +62,7 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
 
   const sessions: WorkoutSession[] = []
   let previousAccessoryNames: string[] = []
+  let previousMainLiftNames: string[] = []
 
   for (const week of weeks) {
     for (let dayIndex = 0; dayIndex < templates.length; dayIndex++) {
@@ -73,6 +74,7 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
         phase: week.phase,
         dayIndex,
         previousAccessoryNames,
+        previousMainLiftNames,
       })
 
       const buildBlock = (exercise: (typeof selected.main_lifts)[number]): ExerciseBlock =>
@@ -118,6 +120,7 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
       })
 
       previousAccessoryNames = selected.accessories.map((exercise) => exercise.name)
+      previousMainLiftNames = selected.main_lifts.map((exercise) => exercise.name)
     }
   }
 

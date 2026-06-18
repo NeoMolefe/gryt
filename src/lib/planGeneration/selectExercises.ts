@@ -9,6 +9,7 @@ export interface SelectExercisesInput {
   phase: Phase
   dayIndex: number
   previousAccessoryNames: string[]
+  previousMainLiftNames: string[]
 }
 
 export interface SelectedExercises {
@@ -21,11 +22,22 @@ export interface SelectedExercises {
 
 const CONDITIONING_CATEGORIES = ['conditioning', 'vo2max', 'sprint']
 
-// Supporting strength movements for HYROX Competitor sessions — capped at 3,
-// chosen because each transfers directly to a HYROX station pattern
-// (hip hinge → sled pull/deadlift carries, squat → wall ball/sled push,
-// single-leg → lunges station), not generic strength-day filler.
-const HYROX_SUPPORTING_LIFT_NAMES = ['Romanian Deadlift', 'Front Squat', 'Bulgarian Split Squat']
+// Supporting strength movements for HYROX Competitor sessions — 3 are picked
+// per day from this pool of 6, chosen because each transfers directly to a
+// HYROX station pattern (hip hinge → sled pull/deadlift carries, squat →
+// wall ball/sled push, single-leg → lunges station), not generic strength
+// filler. Tagged by movement pattern so a day never stacks squat-dominant
+// AND hinge-dominant work — see selectHyroxExercises for how this combines
+// with previousMainLiftNames to avoid same-muscle-group back-to-back days.
+const HYROX_SUPPORTING_LIFT_PATTERNS: Record<string, 'squat' | 'hinge'> = {
+  'Front Squat': 'squat',
+  'Goblet Squat': 'squat',
+  'Bulgarian Split Squat': 'squat',
+  'Romanian Deadlift': 'hinge',
+  'Trap Bar Deadlift': 'hinge',
+  'Hip Thrust': 'hinge',
+}
+const HYROX_SUPPORTING_LIFT_NAMES = Object.keys(HYROX_SUPPORTING_LIFT_PATTERNS)
 const MAX_HYROX_SUPPORTING_LIFTS = 3
 const MAX_HYROX_STATIONS = 5
 
@@ -53,6 +65,52 @@ function sessionNameKeyword(sessionName: string): string | null {
   return match ? match[0].toLowerCase() : null
 }
 
+// Picks `count` exercises from `pool`, preferring ones not used the previous
+// day (rotated by dayIndex for variety), falling back to repeats only when
+// the pool is too small to fully avoid them. Within each tier, exercises
+// matching `preferredPattern` (e.g. the opposite of yesterday's dominant
+// movement pattern) are ranked first, so squat- and hinge-dominant work
+// naturally alternates rather than stacking on consecutive days.
+function pickRotatedMainLifts(
+  pool: LibraryExercise[],
+  dayIndex: number,
+  previousNames: string[],
+  count: number,
+  patternOf?: (exercise: LibraryExercise) => string | undefined,
+  preferredPattern?: string | null,
+): LibraryExercise[] {
+  const rotated = rotate(pool, dayIndex)
+  const nonPrevious = rotated.filter((exercise) => !previousNames.includes(exercise.name))
+  const previous = rotated.filter((exercise) => previousNames.includes(exercise.name))
+
+  const byPatternPreference = (tier: LibraryExercise[]): LibraryExercise[] => {
+    if (!preferredPattern || !patternOf) return tier
+    const preferred = tier.filter((exercise) => patternOf(exercise) === preferredPattern)
+    const rest = tier.filter((exercise) => patternOf(exercise) !== preferredPattern)
+    return [...preferred, ...rest]
+  }
+
+  const ordered = [...byPatternPreference(nonPrevious), ...byPatternPreference(previous)]
+  return ordered.slice(0, Math.min(count, ordered.length))
+}
+
+function dominantPattern(
+  names: string[],
+  patternMap: Record<string, 'squat' | 'hinge'>,
+): 'squat' | 'hinge' | null {
+  const patterns = names.map((name) => patternMap[name]).filter((p): p is 'squat' | 'hinge' => p !== undefined)
+  const squatCount = patterns.filter((p) => p === 'squat').length
+  const hingeCount = patterns.filter((p) => p === 'hinge').length
+  if (squatCount === hingeCount) return null
+  return squatCount > hingeCount ? 'squat' : 'hinge'
+}
+
+function oppositePattern(pattern: 'squat' | 'hinge' | null): 'squat' | 'hinge' | null {
+  if (pattern === 'squat') return 'hinge'
+  if (pattern === 'hinge') return 'squat'
+  return null
+}
+
 // HYROX sessions are structured fundamentally differently from the standard
 // strength-first template: running is the primary conditioning block, HYROX
 // station exercises (sled push/pull, wall ball, farmers carry, burpee broad
@@ -60,7 +118,7 @@ function sessionNameKeyword(sessionName: string): string | null {
 // and traditional main_lifts are limited to a handful of supporting lifts
 // that directly transfer to those stations.
 function selectHyroxExercises(input: SelectExercisesInput): SelectedExercises {
-  const { equipment, phase, dayIndex, previousAccessoryNames } = input
+  const { equipment, phase, dayIndex, previousAccessoryNames, previousMainLiftNames } = input
   const archetype: Archetype = 'HYROX Competitor'
 
   const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase))
@@ -81,12 +139,24 @@ function selectHyroxExercises(input: SelectExercisesInput): SelectedExercises {
     nonPreviousStations.length >= MAX_HYROX_STATIONS ? nonPreviousStations : [...nonPreviousStations, ...previousStations]
   const accessories = stationSelectionPool.slice(0, Math.min(MAX_HYROX_STATIONS, stationSelectionPool.length))
 
-  // Traditional main_lifts capped at 2-3 supporting strength movements.
-  const supportingLiftPool = rotate(
-    available.filter((exercise) => HYROX_SUPPORTING_LIFT_NAMES.includes(exercise.name)),
-    dayIndex,
+  // Traditional main_lifts capped at 2-3 supporting strength movements,
+  // rotated to avoid yesterday's exact exercises and to alternate
+  // squat-dominant / hinge-dominant emphasis day to day (no consecutive
+  // overtraining of the same muscle groups — see Part 1 of the rotation
+  // fix spec for why this exists).
+  const supportingLiftPool = available.filter((exercise) =>
+    HYROX_SUPPORTING_LIFT_NAMES.includes(exercise.name),
   )
-  const main_lifts = supportingLiftPool.slice(0, Math.min(MAX_HYROX_SUPPORTING_LIFTS, supportingLiftPool.length))
+  const yesterdaysPattern =
+    previousMainLiftNames.length === 0 ? 'hinge' : dominantPattern(previousMainLiftNames, HYROX_SUPPORTING_LIFT_PATTERNS)
+  const main_lifts = pickRotatedMainLifts(
+    supportingLiftPool,
+    dayIndex,
+    previousMainLiftNames,
+    MAX_HYROX_SUPPORTING_LIFTS,
+    (exercise) => HYROX_SUPPORTING_LIFT_PATTERNS[exercise.name],
+    oppositePattern(yesterdaysPattern),
+  )
 
   return { warm_up, main_lifts, accessories, conditioning, cooldown }
 }
@@ -96,7 +166,7 @@ export function selectExercises(input: SelectExercisesInput): SelectedExercises 
     return selectHyroxExercises(input)
   }
 
-  const { template, archetype, equipment, phase, dayIndex, previousAccessoryNames } = input
+  const { template, archetype, equipment, phase, dayIndex, previousAccessoryNames, previousMainLiftNames } = input
 
   const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase))
 
@@ -110,20 +180,33 @@ export function selectExercises(input: SelectExercisesInput): SelectedExercises 
   const conditioningCandidates = focusPool.filter((exercise) => CONDITIONING_CATEGORIES.includes(exercise.category))
   const nonConditioningPool = focusPool.filter((exercise) => !CONDITIONING_CATEGORIES.includes(exercise.category))
 
+  // Prefer exercises not used in yesterday's main_lifts, same exclude-then-
+  // fallback pattern already used for accessories below — avoids the same
+  // main lift landing on consecutive training days whenever the pool allows it.
+  const preferUnused = <T extends LibraryExercise>(list: T[]): T[] => {
+    const nonPrevious = list.filter((exercise) => !previousMainLiftNames.includes(exercise.name))
+    const previous = list.filter((exercise) => previousMainLiftNames.includes(exercise.name))
+    return [...nonPrevious, ...previous]
+  }
+
   // Power/plyometric-focused sessions must contain a matching exercise in main_lifts,
   // even though those exercises are not flagged as compounds.
   const isPowerFocus = (focus: Focus): boolean => focus === 'power' || focus === 'plyometric'
   const hasPowerFocus = template.focus.some(isPowerFocus)
-  const powerCandidates = rotate(
-    nonConditioningPool.filter((exercise) => hasPowerFocus && isPowerFocus(exercise.category)),
-    dayIndex,
+  const powerCandidates = preferUnused(
+    rotate(
+      nonConditioningPool.filter((exercise) => hasPowerFocus && isPowerFocus(exercise.category)),
+      dayIndex,
+    ),
   )
 
-  const sortedRest = rotate(
-    [...nonConditioningPool]
-      .filter((exercise) => !(hasPowerFocus && isPowerFocus(exercise.category)))
-      .sort((a, b) => Number(b.is_compound) - Number(a.is_compound)),
-    dayIndex,
+  const sortedRest = preferUnused(
+    rotate(
+      [...nonConditioningPool]
+        .filter((exercise) => !(hasPowerFocus && isPowerFocus(exercise.category)))
+        .sort((a, b) => Number(b.is_compound) - Number(a.is_compound)),
+      dayIndex,
+    ),
   )
 
   const mainCount = Math.min(5, Math.max(3, Math.min(nonConditioningPool.length, 4)))
