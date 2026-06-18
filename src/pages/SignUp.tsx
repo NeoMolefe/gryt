@@ -45,7 +45,7 @@ export function SignUp() {
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/` },
+      options: { redirectTo: 'https://gryt-71b938qcf-neomolefe17-6314s-projects.vercel.app/' },
     })
 
     if (error) {
