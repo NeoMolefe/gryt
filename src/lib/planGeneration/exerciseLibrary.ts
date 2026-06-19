@@ -2,6 +2,15 @@ import type { Archetype, Equipment, Focus, Phase } from '@/types/plan.types'
 
 export type ConditioningType = 'steady_state' | 'interval' | 'sprint' | 'circuit' | 'tabata'
 
+// squat/hinge/push/pull are the patterns selectExercises.ts caps at 1-per-session
+// (Issue 1) — stacking two heavy lifts of the same pattern in one session is a
+// real same-muscle-group overload risk, not just a variety complaint.
+// carry/core/conditioning/other are never capped: HYROX station/circuit work
+// (is_hyrox_station: true) is deliberately tagged conditioning/carry/other so
+// the per-session pattern cap never conflicts with station-circuit content
+// that's meant to appear as a themed set (Issue 2).
+export type MovementPattern = 'squat' | 'hinge' | 'push' | 'pull' | 'carry' | 'core' | 'conditioning' | 'other'
+
 export interface LibraryExercise {
   name: string
   category: Focus
@@ -16,6 +25,7 @@ export interface LibraryExercise {
   home_alternative?: string
   is_compound: boolean
   conditioning_type?: ConditioningType
+  movement_pattern: MovementPattern
   // True only for exercises in the HYROX / HYROX STATIONS sections below —
   // selectExercises.ts uses this to build the station-based main body of a
   // HYROX Competitor session, distinct from the supporting strength lifts.
@@ -54,6 +64,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Brace your core before unracking', 'Drive knees out over toes', 'Keep chest tall through the descent'],
     is_compound: true,
+    movement_pattern: 'squat',
   },
   {
     name: 'Front Squat',
@@ -67,6 +78,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Elbows high, bar resting on front delts', 'Sit straight down between your hips', 'Drive up through a tall torso — this transfers directly to wall ball depth'],
     is_compound: true,
+    movement_pattern: 'squat',
   },
   {
     name: 'Romanian Deadlift',
@@ -80,6 +92,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Hinge at the hips, soft knees', 'Keep the bar close to your legs', 'Feel the stretch in your hamstrings'],
     is_compound: true,
+    movement_pattern: 'hinge',
   },
   {
     name: 'Conventional Deadlift',
@@ -93,6 +106,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 8,
     coaching_cues: ['Set your lats before the pull', 'Push the floor away', 'Keep the bar path vertical'],
     is_compound: true,
+    movement_pattern: 'hinge',
   },
   {
     name: 'Trap Bar Deadlift',
@@ -106,6 +120,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Drive through mid-foot', 'Stand tall at the top, no lean back', 'Control the descent'],
     is_compound: true,
+    movement_pattern: 'hinge',
   },
   {
     name: 'Bench Press',
@@ -119,6 +134,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Pull shoulder blades together and down', 'Lower the bar with control to your chest', 'Drive feet into the floor'],
     is_compound: true,
+    movement_pattern: 'push',
   },
   {
     name: 'Overhead Press',
@@ -132,6 +148,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Brace your core, ribs down', 'Press in a straight line overhead', 'Squeeze glutes to protect the lower back'],
     is_compound: true,
+    movement_pattern: 'push',
   },
   {
     name: 'Barbell Row',
@@ -145,6 +162,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Hinge to roughly 45 degrees', 'Pull the bar to your lower ribs', 'Avoid jerking the weight up'],
     is_compound: true,
+    movement_pattern: 'pull',
   },
   {
     name: 'Pull-Up',
@@ -159,6 +177,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Start from a full hang', 'Drive elbows down and back', 'Avoid kipping unless trained'],
     home_alternative: 'Band-assisted pull-up or inverted row',
     is_compound: true,
+    movement_pattern: 'pull',
   },
   {
     name: 'Chin-Up',
@@ -173,6 +192,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Underhand grip, shoulder width', 'Drive elbows to your hips', 'Control the lowering phase'],
     home_alternative: 'Band-assisted chin-up or inverted row',
     is_compound: true,
+    movement_pattern: 'pull',
   },
   {
     name: 'Dumbbell Lunge',
@@ -187,6 +207,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Step out to a comfortable distance', 'Lower the back knee under control', 'Drive through the front heel to stand'],
     home_alternative: 'Bodyweight lunge',
     is_compound: true,
+    movement_pattern: 'squat',
   },
   {
     name: 'Bulgarian Split Squat',
@@ -201,6 +222,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Rear foot elevated on a bench', 'Keep most of the weight on the front leg', 'Descend until the rear knee nears the floor'],
     home_alternative: 'Bodyweight split squat',
     is_compound: true,
+    movement_pattern: 'squat',
   },
   {
     name: 'Hip Thrust',
@@ -215,6 +237,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Shoulder blades on the bench', 'Drive hips up, squeeze glutes hard at the top', 'Keep ribs down, avoid over-arching'],
     home_alternative: 'Single-leg glute bridge',
     is_compound: true,
+    movement_pattern: 'hinge',
   },
   {
     name: 'Goblet Squat',
@@ -229,6 +252,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Hold the weight close to your chest', 'Sit between your knees, elbows inside', 'Keep heels planted'],
     home_alternative: 'Bodyweight squat',
     is_compound: true,
+    movement_pattern: 'squat',
   },
   {
     name: 'Reverse Lunge',
@@ -242,6 +266,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Step back under control', 'Keep front shin near vertical', 'Push through the front foot to return'],
     is_compound: true,
+    movement_pattern: 'squat',
   },
   {
     name: 'Push-Up',
@@ -255,6 +280,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Keep a straight line from head to heels', 'Lower chest close to the floor', 'Press through the full hand'],
     is_compound: true,
+    movement_pattern: 'push',
   },
   {
     name: 'Dip',
@@ -269,6 +295,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Lean slightly forward', 'Lower until shoulders feel a stretch', 'Press back up to lockout'],
     home_alternative: 'Close-grip push-up',
     is_compound: true,
+    movement_pattern: 'push',
   },
 
   // ───────────── PLYOMETRIC / POWER ─────────────
@@ -284,6 +311,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Stand tall before each rep', 'Land softly with bent knees', 'Step down, don’t jump down'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Broad Jump',
@@ -297,6 +325,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Swing arms back then explosively forward', 'Land with soft knees, stick the landing', 'Reset fully between reps'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Lateral Bound',
@@ -310,6 +339,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Push off the outside leg', 'Stick the landing before bounding back', 'Stay low and athletic'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Depth Drop',
@@ -323,6 +353,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 8,
     coaching_cues: ['Step off, don’t jump off the box', 'Absorb the landing through the hips', 'Reset fully before each rep'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Tuck Jump',
@@ -336,6 +367,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Drive knees up toward your chest', 'Land softly and reset', 'Keep reps explosive, not rushed'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Single Leg Broad Jump',
@@ -349,6 +381,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Drive off one leg, land on the same leg', 'Stick the landing for 2 seconds', 'Match reps on both sides'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Reactive Box Jump',
@@ -362,6 +395,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 8,
     coaching_cues: ['Minimise ground contact time', 'Land and rebound immediately', 'Reset technique if quality drops'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Medicine Ball Overhead Slam',
@@ -375,6 +409,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Reach tall before the slam', 'Drive through the hips and core', 'Slam with full intent'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Rotational Med Ball Throw',
@@ -388,6 +423,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Rotate from the hips, not just the arms', 'Throw explosively against the wall', 'Match reps each side'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Med Ball Slam',
@@ -401,6 +437,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Full extension on the reach', 'Slam with maximum effort', 'Reset your stance every rep'],
     is_compound: false,
+    movement_pattern: 'other',
   },
 
   // ───────────── LOADED CARRIES ─────────────
@@ -416,6 +453,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Stand tall, brace your core', 'Keep shoulders down and back', 'Take controlled steps'],
     is_compound: false,
+    movement_pattern: 'carry',
   },
   {
     name: 'Trap Bar Farmers Walk',
@@ -429,6 +467,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Brace before lifting the bar', 'Walk with short, quick steps', 'Keep grip tight throughout'],
     is_compound: false,
+    movement_pattern: 'carry',
   },
   {
     name: 'Suitcase Carry',
@@ -442,6 +481,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Resist leaning toward the loaded side', 'Keep shoulders level', 'Brace your obliques hard'],
     is_compound: false,
+    movement_pattern: 'carry',
   },
   {
     name: 'Overhead Carry',
@@ -455,6 +495,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Stack the weight directly overhead', 'Brace your ribs down', 'Walk with control'],
     is_compound: false,
+    movement_pattern: 'carry',
   },
   {
     name: 'Sled Push',
@@ -469,6 +510,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Drive with low, powerful steps', 'Keep a flat back, push through arms', 'Maintain consistent pace'],
     home_alternative: 'Load a bag, push for 10m',
     is_compound: false,
+    movement_pattern: 'carry',
   },
   {
     name: 'Sled Pull',
@@ -483,6 +525,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Sit back into the harness', 'Drive the legs, pull with control', 'Keep tension throughout'],
     home_alternative: 'Resistance band sprint: anchor band, drive forward 10m',
     is_compound: false,
+    movement_pattern: 'carry',
   },
   {
     name: 'Sandbag Clean & Press',
@@ -496,6 +539,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Keep the sandbag close to your body', 'Use your legs to drive it up', 'Press to full lockout overhead'],
     is_compound: false,
+    movement_pattern: 'carry',
   },
 
   // ───────────── CONDITIONING / CARDIO ─────────────
@@ -512,6 +556,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Full recovery between reps', 'Drive arms and knees aggressively', "Maintain top-end form, don't over-stride"],
     is_compound: false,
     conditioning_type: 'sprint',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Sprint Intervals 6×60m',
@@ -526,6 +571,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Build into top speed over the first 20m', 'Stay relaxed through the shoulders', 'Full recovery between reps'],
     is_compound: false,
     conditioning_type: 'sprint',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'VO2 Max Intervals 4×4min',
@@ -540,6 +586,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Hold a hard but sustainable effort', 'Use the rest to fully recover your breathing', 'Pace evenly across intervals'],
     is_compound: false,
     conditioning_type: 'interval',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'VO2 Max Intervals 5×3min',
@@ -554,6 +601,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Settle into rhythm by 30 seconds', 'Keep effort consistent across reps', 'Breathe through the recovery'],
     is_compound: false,
     conditioning_type: 'interval',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Hill Sprint Repeats 8×15s',
@@ -568,6 +616,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Drive knees high up the hill', 'Walk back down for full recovery', 'Keep effort maximal but controlled'],
     is_compound: false,
     conditioning_type: 'sprint',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Assault Bike Tabata 8×20s',
@@ -583,6 +632,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     home_alternative: 'Burpee Tabata 8×20s',
     is_compound: false,
     conditioning_type: 'tabata',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Run Zone 2 30min',
@@ -597,6 +647,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Conversational pace throughout', 'Nasal breathing if possible', 'Resist the urge to speed up'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Run Zone 2 40min',
@@ -611,6 +662,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Hold an easy, sustainable pace', 'Stay relaxed through the shoulders and jaw', 'Fuel before if over 60 minutes'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Tempo Run 20min',
@@ -625,6 +677,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Comfortably hard, sustainable effort', 'Settle in gradually over the first 5 minutes', 'Hold form as fatigue builds'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Tempo Run 25min',
@@ -639,6 +692,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Lock into a rhythm you can repeat', 'Effort should feel hard but controlled', 'Negative split if you feel strong'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Interval Run 6×800m',
@@ -653,6 +707,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Even pacing across all reps', 'Use the recovery jog to reset form', 'Last rep should feel as strong as the first'],
     is_compound: false,
     conditioning_type: 'interval',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Interval Run 8×400m',
@@ -667,6 +722,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Hit your target split each rep', 'Recover with an easy jog or walk', 'Stay relaxed at speed'],
     is_compound: false,
     conditioning_type: 'interval',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Long Run 45min',
@@ -681,6 +737,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Start conservatively', 'Practice race-day fuelling', 'Slow down rather than skip the distance'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Long Run 60min+',
@@ -695,6 +752,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Build distance gradually week to week', 'Fuel and hydrate on schedule', 'Finish feeling like you had more in reserve'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
 
   // ───────────── AGILITY ─────────────
@@ -710,6 +768,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Stay low with bent knees', 'Quick, light feet', 'Lead with the hips, not the head'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: '5-10-5 Agility Drill',
@@ -723,6 +782,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Plant and drive out of each cut', 'Stay low through direction changes', 'Full recovery between reps'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'T-Drill',
@@ -736,6 +796,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Sprint forward, shuffle laterally, backpedal', 'Keep hips low on the shuffles', 'Quality over speed early on'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Cone Drill',
@@ -749,6 +810,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Sharp, controlled cuts around each cone', 'Keep your centre of gravity low', 'Accelerate out of every turn'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Agility Ladder High Knees',
@@ -762,6 +824,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['One foot in each box', 'Drive knees up quickly', 'Stay light on your feet'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Reactive Drop Step',
@@ -775,6 +838,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['React to the cue as fast as possible', 'Drop step and accelerate explosively', 'Reset athletic stance between reps'],
     is_compound: false,
+    movement_pattern: 'other',
   },
 
   // ───────────── CORE / ANTI-ROTATION ─────────────
@@ -791,6 +855,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Resist rotation toward the cable', 'Press out slowly and with control', 'Keep ribs stacked over hips'],
     home_alternative: 'Band Pallof Press',
     is_compound: false,
+    movement_pattern: 'core',
   },
   {
     name: 'Dead Bug',
@@ -804,6 +869,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 5,
     coaching_cues: ['Press lower back into the floor', 'Move opposite arm and leg slowly', 'Exhale fully on each rep'],
     is_compound: false,
+    movement_pattern: 'core',
   },
   {
     name: 'Copenhagen Plank',
@@ -817,6 +883,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Top leg on the bench, bottom leg lifted', 'Keep hips square and lifted', 'Build time gradually'],
     is_compound: false,
+    movement_pattern: 'core',
   },
   {
     name: 'Plank',
@@ -830,6 +897,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 5,
     coaching_cues: ['Squeeze glutes and brace your core', 'Keep a straight line head to heels', 'Breathe steadily throughout'],
     is_compound: false,
+    movement_pattern: 'core',
   },
   {
     name: 'Side Plank',
@@ -843,6 +911,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 5,
     coaching_cues: ['Stack hips and shoulders', 'Lift hips as high as comfortable', 'Keep neck neutral'],
     is_compound: false,
+    movement_pattern: 'core',
   },
   {
     name: 'Ab Wheel Rollout',
@@ -856,6 +925,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Brace before you roll out', 'Roll only as far as you can control', 'Pull back using your abs, not your hips'],
     is_compound: false,
+    movement_pattern: 'core',
   },
 
   // ───────────── ISOLATION ─────────────
@@ -871,6 +941,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Keep elbows pinned to your sides', 'Control the lowering phase', 'Avoid swinging the weight'],
     is_compound: false,
+    movement_pattern: 'pull',
   },
   {
     name: 'Tricep Pushdown',
@@ -884,6 +955,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Keep elbows fixed at your sides', 'Extend fully without locking out hard', 'Control the return'],
     is_compound: false,
+    movement_pattern: 'push',
   },
   {
     name: 'Lateral Raise',
@@ -897,6 +969,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Lead with the elbows', 'Raise to shoulder height', 'Avoid using momentum'],
     is_compound: false,
+    movement_pattern: 'push',
   },
   {
     name: 'Face Pull',
@@ -910,6 +983,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 5,
     coaching_cues: ['Pull to your forehead', 'Rotate shoulders externally at the end', 'Keep elbows high'],
     is_compound: false,
+    movement_pattern: 'pull',
   },
   {
     name: 'Leg Curl',
@@ -923,6 +997,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Control the eccentric', 'Squeeze hamstrings at the top', 'Avoid hips lifting off the pad'],
     is_compound: false,
+    movement_pattern: 'hinge',
   },
   {
     name: 'Leg Extension',
@@ -936,6 +1011,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Control the weight on the way down', 'Squeeze quads at the top', 'Avoid locking out aggressively'],
     is_compound: false,
+    movement_pattern: 'squat',
   },
   {
     name: 'Calf Raise',
@@ -949,6 +1025,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Full stretch at the bottom', 'Pause at the top of each rep', 'Control the tempo'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Glute Kickback',
@@ -962,6 +1039,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Squeeze the glute at the top', 'Avoid arching your lower back', 'Move through a controlled range'],
     is_compound: false,
+    movement_pattern: 'hinge',
   },
 
   // ───────────── MOBILITY / WARM-UP ─────────────
@@ -977,6 +1055,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 4,
     coaching_cues: ['Move through the full range slowly', 'Breathe into each position', 'Sink deeper each rep'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Hip 90/90',
@@ -990,6 +1069,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 4,
     coaching_cues: ['Keep both sit bones on the floor', 'Rotate from the hip, not the back', 'Move slowly and with control'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Thoracic Rotation',
@@ -1003,6 +1083,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 4,
     coaching_cues: ['Keep hips stacked and still', 'Rotate through the upper back', 'Follow your hand with your eyes'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Band Pull-Apart',
@@ -1017,6 +1098,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Squeeze shoulder blades together', 'Keep arms straight', 'Control the return'],
     home_alternative: 'Arm circles',
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Leg Swing',
@@ -1030,6 +1112,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 4,
     coaching_cues: ['Hold something stable for balance', 'Swing through a comfortable range', 'Increase range gradually'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Arm Circle',
@@ -1043,6 +1126,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 3,
     coaching_cues: ['Start small and increase the size', 'Keep arms long', 'Both directions'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Inchworm',
@@ -1056,6 +1140,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 5,
     coaching_cues: ['Walk hands out to a plank', 'Keep legs as straight as comfortable', 'Walk feet up to meet hands'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Cat-Cow',
@@ -1069,6 +1154,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 3,
     coaching_cues: ['Move slowly between each position', 'Match breath to movement', 'Feel the stretch through your spine'],
     is_compound: false,
+    movement_pattern: 'other',
   },
   {
     name: 'Hip Circle',
@@ -1082,6 +1168,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 4,
     coaching_cues: ['Keep your standing leg stable', 'Move through the largest comfortable circle', 'Both directions, both legs'],
     is_compound: false,
+    movement_pattern: 'other',
   },
 
   // ───────────── CYCLING ─────────────
@@ -1098,6 +1185,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Hold a conversational effort', 'Maintain a smooth, even cadence', 'Resist the urge to push the pace'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Bike Intervals 6×3min',
@@ -1112,6 +1200,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Build effort over the first 30 seconds', 'Hold cadence consistent across reps', 'Recover fully between intervals'],
     is_compound: false,
     conditioning_type: 'interval',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Recovery Ride 30min',
@@ -1126,6 +1215,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Very light effort, easy gear', 'Focus on smooth pedalling', 'This is active recovery, not training'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Long Ride 60min',
@@ -1140,6 +1230,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Settle into a sustainable rhythm', 'Practice your nutrition strategy', 'Build duration gradually week to week'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Brick Session Bike 20min + Run 15min',
@@ -1154,6 +1245,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Transition quickly from bike to run', 'Expect heavy legs in the first few minutes of the run', 'Hold an even effort across both'],
     is_compound: false,
     conditioning_type: 'steady_state',
+    movement_pattern: 'conditioning',
   },
 
   // ───────────── HYROX ─────────────
@@ -1171,6 +1263,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     is_compound: false,
     conditioning_type: 'interval',
     is_hyrox_station: true,
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Wall Ball 4×25 reps',
@@ -1186,6 +1279,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     is_compound: false,
     conditioning_type: 'circuit',
     is_hyrox_station: true,
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Farmers Carry 4×50m',
@@ -1200,6 +1294,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Grip the handles tight', 'Stand tall, controlled stride', 'Set down with control between attempts'],
     is_compound: false,
     is_hyrox_station: true,
+    movement_pattern: 'carry',
   },
   {
     name: 'Burpee Broad Jump 3×10',
@@ -1214,6 +1309,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Chest to the floor on the burpee', 'Explode forward into the broad jump', 'Reset stance before the next rep'],
     is_compound: false,
     is_hyrox_station: true,
+    movement_pattern: 'other',
   },
   {
     name: 'Sandbag Lunges 3×20m',
@@ -1228,6 +1324,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Keep the sandbag tight to your body', 'Drive through the front heel', 'Maintain an upright torso'],
     is_compound: false,
     is_hyrox_station: true,
+    movement_pattern: 'carry',
   },
   {
     name: 'Rowing 1000m Repeats ×4',
@@ -1243,6 +1340,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     is_compound: false,
     conditioning_type: 'interval',
     is_hyrox_station: true,
+    movement_pattern: 'conditioning',
   },
 
   // ───────────── HYROX STATIONS ─────────────
@@ -1260,6 +1358,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     is_compound: false,
     conditioning_type: 'steady_state',
     is_hyrox_station: true,
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Sled Push 6×25m',
@@ -1275,6 +1374,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     home_alternative: 'Load a sturdy bag on a smooth floor, push for 10m with max effort',
     is_compound: true,
     is_hyrox_station: true,
+    movement_pattern: 'carry',
   },
   {
     name: 'Sled Pull 6×25m',
@@ -1290,6 +1390,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     home_alternative: 'Resistance band anchored at waist height, drive forward against resistance for 10m',
     is_compound: true,
     is_hyrox_station: true,
+    movement_pattern: 'carry',
   },
   {
     name: 'Burpee Broad Jump 4×10',
@@ -1304,6 +1405,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Full burpee, then maximum broad jump', 'Competition pacing means finding a sustainable rhythm', 'Don\'t sprint the first 20 reps'],
     is_compound: false,
     is_hyrox_station: true,
+    movement_pattern: 'other',
   },
   {
     name: 'Rowing Endurance 1000m',
@@ -1319,6 +1421,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     is_compound: false,
     conditioning_type: 'steady_state',
     is_hyrox_station: true,
+    movement_pattern: 'conditioning',
   },
   {
     name: 'Farmers Carry HYROX 4×50m',
@@ -1334,6 +1437,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     home_alternative: 'Heaviest dumbbells or filled bags available',
     is_compound: false,
     is_hyrox_station: true,
+    movement_pattern: 'carry',
   },
   {
     name: 'Sandbag Lunges HYROX 4×25m',
@@ -1348,6 +1452,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Sandbag on shoulders, controlled walking lunges', 'Competition is 100m total — build toward unbroken sets', 'Drive through the front heel'],
     is_compound: false,
     is_hyrox_station: true,
+    movement_pattern: 'carry',
   },
   {
     name: 'Wall Balls Competition Volume 75 reps',
@@ -1363,5 +1468,6 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     is_compound: false,
     conditioning_type: 'circuit',
     is_hyrox_station: true,
+    movement_pattern: 'conditioning',
   },
 ]

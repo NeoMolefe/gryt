@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { eventTypeLabel } from '@/lib/onboarding/options'
+import { getTrainingForLabel } from '@/lib/plan/trainingForLabel'
 import { useAuthStore } from '@/store/authStore'
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useNotifications } from '@/hooks/useNotifications'
@@ -124,6 +124,7 @@ export function Dashboard() {
 
   const recoveryTip = RECOVERY_TIPS[getDayOfYear() % RECOVERY_TIPS.length]
   const currentPhase = todaysWorkout?.phase ?? weekSchedule.find((d) => d.workout)?.workout?.phase ?? 'foundation'
+  const trainingForLabel = getTrainingForLabel(plan.archetype)
 
   return (
     <motion.div
@@ -141,15 +142,17 @@ export function Dashboard() {
 
         <Greeting firstName={profile.first_name ?? 'there'} streak={streak} />
 
-        {profile.event_type && profile.event_date && (
+        {trainingForLabel && (
           <div className="flex items-center justify-between rounded-xl border border-border bg-elevated px-4 py-3">
             <div className="flex flex-col gap-0.5">
               <span className="text-xs uppercase tracking-wide text-text-muted">Training for</span>
-              <span className="text-sm font-semibold text-text-primary">{eventTypeLabel(profile.event_type)}</span>
+              <span className="text-sm font-semibold text-text-primary">{trainingForLabel}</span>
             </div>
-            <span className="text-sm font-medium text-brand-orange">
-              {weeksUntilEvent(profile.event_date)} weeks to go
-            </span>
+            {profile.event_date && (
+              <span className="text-sm font-medium text-brand-orange">
+                {weeksUntilEvent(profile.event_date)} weeks to go
+              </span>
+            )}
           </div>
         )}
 

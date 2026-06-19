@@ -1,5 +1,5 @@
 import type { Archetype, Equipment, Focus, Phase } from '@/types/plan.types'
-import { EXERCISE_LIBRARY, type LibraryExercise } from './exerciseLibrary'
+import { EXERCISE_LIBRARY, type LibraryExercise, type MovementPattern } from './exerciseLibrary'
 import type { SessionTemplate } from './selectSplit'
 
 export interface SelectExercisesInput {
@@ -111,6 +111,58 @@ function oppositePattern(pattern: 'squat' | 'hinge' | null): 'squat' | 'hinge' |
   return null
 }
 
+// Issue 1: within a single session, across main_lifts + accessories combined,
+// no more than 1 exercise of each squat/hinge/push/pull pattern — stacking
+// two heavy lifts of the same pattern (e.g. Front Squat + Romanian Deadlift +
+// Conventional Deadlift in one session) is a real same-muscle-group overload
+// risk, not just a variety complaint. carry/core/conditioning/other patterns
+// are never capped — HYROX station circuits are deliberately tagged that way
+// so this never conflicts with Issue 2's station-content requirement.
+// main_lifts are prescribed first and always win ties; a conflicting
+// accessory is swapped for a non-conflicting replacement where one exists in
+// `replacementPool`, otherwise the slot is dropped rather than kept in conflict.
+const CAPPED_PATTERNS: ReadonlySet<MovementPattern> = new Set(['squat', 'hinge', 'push', 'pull'])
+
+function enforceMovementPatternLimits(
+  mainLifts: LibraryExercise[],
+  accessories: LibraryExercise[],
+  replacementPool: LibraryExercise[],
+): { main_lifts: LibraryExercise[]; accessories: LibraryExercise[] } {
+  const claimed = new Set<MovementPattern>()
+  const usedNames = new Set<string>()
+
+  const conflicts = (exercise: LibraryExercise): boolean =>
+    CAPPED_PATTERNS.has(exercise.movement_pattern) && claimed.has(exercise.movement_pattern)
+
+  const claim = (exercise: LibraryExercise): void => {
+    if (CAPPED_PATTERNS.has(exercise.movement_pattern)) claimed.add(exercise.movement_pattern)
+    usedNames.add(exercise.name)
+  }
+
+  const keptMain: LibraryExercise[] = []
+  for (const exercise of mainLifts) {
+    if (conflicts(exercise)) continue
+    claim(exercise)
+    keptMain.push(exercise)
+  }
+
+  const keptAccessories: LibraryExercise[] = []
+  for (const exercise of accessories) {
+    if (!conflicts(exercise)) {
+      claim(exercise)
+      keptAccessories.push(exercise)
+      continue
+    }
+    const replacement = replacementPool.find((candidate) => !usedNames.has(candidate.name) && !conflicts(candidate))
+    if (replacement) {
+      claim(replacement)
+      keptAccessories.push(replacement)
+    }
+  }
+
+  return { main_lifts: keptMain, accessories: keptAccessories }
+}
+
 // HYROX sessions are structured fundamentally differently from the standard
 // strength-first template: running is the primary conditioning block, HYROX
 // station exercises (sled push/pull, wall ball, farmers carry, burpee broad
@@ -118,7 +170,7 @@ function oppositePattern(pattern: 'squat' | 'hinge' | null): 'squat' | 'hinge' |
 // and traditional main_lifts are limited to a handful of supporting lifts
 // that directly transfer to those stations.
 function selectHyroxExercises(input: SelectExercisesInput): SelectedExercises {
-  const { equipment, phase, dayIndex, previousAccessoryNames, previousMainLiftNames } = input
+  const { template, equipment, phase, dayIndex, previousAccessoryNames, previousMainLiftNames } = input
   const archetype: Archetype = 'HYROX Competitor'
 
   const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase))
@@ -139,24 +191,49 @@ function selectHyroxExercises(input: SelectExercisesInput): SelectedExercises {
     nonPreviousStations.length >= MAX_HYROX_STATIONS ? nonPreviousStations : [...nonPreviousStations, ...previousStations]
   const accessories = stationSelectionPool.slice(0, Math.min(MAX_HYROX_STATIONS, stationSelectionPool.length))
 
-  // Traditional main_lifts capped at 2-3 supporting strength movements,
-  // rotated to avoid yesterday's exact exercises and to alternate
-  // squat-dominant / hinge-dominant emphasis day to day (no consecutive
-  // overtraining of the same muscle groups — see Part 1 of the rotation
-  // fix spec for why this exists).
   const supportingLiftPool = available.filter((exercise) =>
     HYROX_SUPPORTING_LIFT_NAMES.includes(exercise.name),
   )
-  const yesterdaysPattern =
-    previousMainLiftNames.length === 0 ? 'hinge' : dominantPattern(previousMainLiftNames, HYROX_SUPPORTING_LIFT_PATTERNS)
-  const main_lifts = pickRotatedMainLifts(
-    supportingLiftPool,
-    dayIndex,
-    previousMainLiftNames,
-    MAX_HYROX_SUPPORTING_LIFTS,
-    (exercise) => HYROX_SUPPORTING_LIFT_PATTERNS[exercise.name],
-    oppositePattern(yesterdaysPattern),
-  )
+
+  // Issue 2: "Stations + Run" sessions are built around the station circuit
+  // (accessories) and the run (conditioning) — those are already quad- and
+  // posterior-chain-dominant on their own. main_lifts gets at most 1 hinge
+  // exercise to prime the posterior chain before stations, never a squat
+  // stacked on top of already squat-pattern-heavy station work.
+  const isStationsRunSession = template.session_name.includes('Stations + Run')
+
+  let main_lifts: LibraryExercise[]
+  if (isStationsRunSession) {
+    const hingePool = supportingLiftPool.filter(
+      (exercise) => HYROX_SUPPORTING_LIFT_PATTERNS[exercise.name] === 'hinge',
+    )
+    main_lifts = pickRotatedMainLifts(hingePool, dayIndex, previousMainLiftNames, 1)
+  } else {
+    // Traditional main_lifts capped at 2-3 supporting strength movements,
+    // rotated to avoid yesterday's exact exercises and to alternate
+    // squat-dominant / hinge-dominant emphasis day to day.
+    const yesterdaysPattern =
+      previousMainLiftNames.length === 0
+        ? 'hinge'
+        : dominantPattern(previousMainLiftNames, HYROX_SUPPORTING_LIFT_PATTERNS)
+    const rotatedPicks = pickRotatedMainLifts(
+      supportingLiftPool,
+      dayIndex,
+      previousMainLiftNames,
+      MAX_HYROX_SUPPORTING_LIFTS,
+      (exercise) => HYROX_SUPPORTING_LIFT_PATTERNS[exercise.name],
+      oppositePattern(yesterdaysPattern),
+    )
+    // Issue 1: even with the squat/hinge alternation above, a single day's
+    // picks can still land on 3 of the same pattern (e.g. a pure squat day).
+    // Enforce the 1-per-pattern cap here too, swapping in an opposite-pattern
+    // replacement from the same pool rather than just dropping the slot.
+    // Passed as `accessories` (not `mainLifts`) so every pick — not just the
+    // first — is eligible for a non-conflicting replacement.
+    const usedNames = new Set(rotatedPicks.map((exercise) => exercise.name))
+    const replacementPool = supportingLiftPool.filter((exercise) => !usedNames.has(exercise.name))
+    main_lifts = enforceMovementPatternLimits([], rotatedPicks, replacementPool).accessories
+  }
 
   return { warm_up, main_lifts, accessories, conditioning, cooldown }
 }
@@ -246,5 +323,12 @@ export function selectExercises(input: SelectExercisesInput): SelectedExercises 
     conditioning = keywordMatch ?? rotate(pool, dayIndex)[0]
   }
 
-  return { warm_up, main_lifts, accessories, conditioning, cooldown }
+  // Issue 1: cap squat/hinge/push/pull at 1 each across main_lifts + accessories
+  // combined. Replacement candidates come from whatever's left in the focus
+  // pool once main_lifts and accessories have already claimed their names.
+  const selectedNames = new Set([...main_lifts, ...accessories].map((exercise) => exercise.name))
+  const replacementPool = nonConditioningPool.filter((exercise) => !selectedNames.has(exercise.name))
+  const deduped = enforceMovementPatternLimits(main_lifts, accessories, replacementPool)
+
+  return { warm_up, main_lifts: deduped.main_lifts, accessories: deduped.accessories, conditioning, cooldown }
 }

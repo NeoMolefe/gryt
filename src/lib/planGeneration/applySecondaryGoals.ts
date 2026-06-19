@@ -122,6 +122,9 @@ export function applySecondaryGoals(
   if (secondaryGoals.length > 0) {
     result = result.map((session, index) => {
       if (session.phase === 'deload') return session
+      // A HYROX Simulation day is the race rehearsal itself — never layer
+      // extra accessory work onto it just because a secondary goal is due.
+      if (session.hyrox_simulation) return session
       const goal = secondaryGoals[index % secondaryGoals.length]
       return injectExtraAccessory(session, goal, equipment, archetype, experience)
     })

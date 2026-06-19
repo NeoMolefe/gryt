@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { fetchActivePlan, fetchWorkouts } from '@/lib/dashboard/queries'
-import { eventTypeLabel } from '@/lib/onboarding/options'
+import { getTrainingForLabel } from '@/lib/plan/trainingForLabel'
 import { loadActiveSession, clearActiveSession } from '@/lib/session/sessionStorage'
 import { ResumeSessionModal } from '@/components/session/ResumeSessionModal'
 import { WeekAccordion, type WeekGroup } from '@/components/plan/WeekAccordion'
@@ -53,7 +53,7 @@ export function Workouts() {
       }))
   }, [workoutsQuery.data])
 
-  const eventBadgeLabel = profile?.event_type ? eventTypeLabel(profile.event_type) : null
+  const eventBadgeLabel = plan ? getTrainingForLabel(plan.archetype) : null
 
   function handleStart(workout: Workout) {
     if (!userId) return

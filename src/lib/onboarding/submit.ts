@@ -12,6 +12,8 @@ export async function submitOnboarding(
   // Profile creation only happens here — SignUp.tsx has no INSERT.
   // email must be present because it is NOT NULL in the DB; the INSERT
   // path requires it, even though UPDATE would preserve an existing value.
+  const isEventSpecific = data.primaryGoal === 'event_specific'
+
   const profilePayload = {
     id: userId,
     email,
@@ -28,9 +30,13 @@ export async function submitOnboarding(
     equipment: data.equipment,
     training_styles: data.trainingStyle,
     injury_history: data.injuryHistory.trim() || null,
-    event_type: data.eventType,
-    event_date: data.eventDate,
-    goal_time_minutes: data.goalTimeMinutes,
+    // Clear stale event fields when the user is no longer training for a
+    // specific event — otherwise a prior goal (e.g. event_type: 'hyrox')
+    // survives in the profile after switching to e.g. General Fitness, and
+    // any future feature reading profile.event_type inherits the lie.
+    event_type: isEventSpecific ? data.eventType : null,
+    event_date: isEventSpecific ? data.eventDate : null,
+    goal_time_minutes: isEventSpecific ? data.goalTimeMinutes : null,
     onboarding_completed: true,
   }
 

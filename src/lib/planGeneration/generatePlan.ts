@@ -105,6 +105,12 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
 
       const isSimulationSession = isHyroxEvent && template.session_name === 'HYROX Simulation'
 
+      // A simulation day IS the race rehearsal — no strength work or extra
+      // conditioning gets layered on top of it. warm_up/cooldown still apply.
+      const main_lifts = isSimulationSession ? [] : selected.main_lifts.map(buildBlock)
+      const accessories = isSimulationSession ? [] : selected.accessories.map(buildBlock)
+      const conditioning = isSimulationSession ? null : conditioningExercise ? buildBlock(conditioningExercise) : null
+
       sessions.push({
         session_name: template.session_name,
         phase: week.phase,
@@ -112,15 +118,19 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
         day_number: dayIndex + 1,
         estimated_duration_minutes: 0,
         warm_up: selected.warm_up.map(buildBlock),
-        main_lifts: selected.main_lifts.map(buildBlock),
-        accessories: selected.accessories.map(buildBlock),
-        conditioning: conditioningExercise ? buildBlock(conditioningExercise) : null,
+        main_lifts,
+        accessories,
+        conditioning,
         cooldown: selected.cooldown.map(buildBlock),
         hyrox_simulation: isSimulationSession ? buildHyroxSimulation(week.phase) : undefined,
       })
 
-      previousAccessoryNames = selected.accessories.map((exercise) => exercise.name)
-      previousMainLiftNames = selected.main_lifts.map((exercise) => exercise.name)
+      // Track what the session actually contains (empty for simulation days),
+      // not what selectExercises computed before the simulation override —
+      // a simulation day doesn't fatigue any specific lift, so the next day
+      // shouldn't treat it as having "used" any main lift or accessory.
+      previousAccessoryNames = accessories.map((exercise) => exercise.name)
+      previousMainLiftNames = main_lifts.map((exercise) => exercise.name)
     }
   }
 
