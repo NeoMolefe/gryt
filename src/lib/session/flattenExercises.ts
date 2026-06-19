@@ -21,7 +21,9 @@ export function flattenExercises(workout: Workout): FlatExercise[] {
       continue
     }
 
-    for (const block of workout[section]) {
+    // core_stability is nullable (rows created before that column existed
+    // have null, not []) — every other section here is a required array.
+    for (const block of workout[section] ?? []) {
       flat.push({ section, block, isCompound: section === 'main_lifts' })
     }
   }

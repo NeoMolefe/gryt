@@ -75,11 +75,11 @@ export function DayCard({ workout, eventBadgeLabel, injuryFlags, isExpanded, onT
             </section>
           )}
 
-          {workout.core_stability.length > 0 && (
+          {(workout.core_stability ?? []).length > 0 && (
             <section>
               <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Core Stability</h4>
               <ul className="space-y-2">
-                {workout.core_stability.map((block) => (
+                {(workout.core_stability ?? []).map((block) => (
                   <ExerciseBlockRow key={block.name} block={block} injuryFlags={flagsForExercise(block.name, injuryFlags)} />
                 ))}
               </ul>

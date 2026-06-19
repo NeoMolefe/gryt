@@ -57,7 +57,9 @@ export interface WorkoutSession {
   warm_up: ExerciseBlock[]
   main_lifts: ExerciseBlock[]
   accessories: ExerciseBlock[]
-  core_stability: ExerciseBlock[]
+  // Optional/nullable: rows created before this column existed have null
+  // here, not an empty array — every read site must fall back with `?? []`.
+  core_stability?: ExerciseBlock[] | null
   conditioning: ExerciseBlock | null
   cooldown: ExerciseBlock[]
   notes?: string[]
