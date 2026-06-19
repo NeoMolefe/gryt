@@ -74,12 +74,12 @@ export const PRIMARY_GOAL_OPTIONS: {
   {
     value: 'hybrid_training',
     label: 'Hybrid Training',
-    subtitle: 'Combine strength and endurance',
+    subtitle: 'Mix of strength and conditioning — no specific race or event',
   },
   {
     value: 'event_specific',
     label: 'Event Specific',
-    subtitle: 'Train for a specific race or event',
+    subtitle: 'HYROX, marathon, triathlon, cycling — build toward a race',
   },
 ]
 
