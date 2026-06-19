@@ -2,7 +2,7 @@ import type { ExerciseBlock } from '@/types/plan.types'
 import type { SessionLogStatus } from '@/types/dashboard.types'
 import type { UnlockedBadge } from '@/types/gamification.types'
 
-export type ExerciseSection = 'warm_up' | 'main_lifts' | 'accessories' | 'conditioning' | 'cooldown'
+export type ExerciseSection = 'warm_up' | 'main_lifts' | 'accessories' | 'core_stability' | 'conditioning' | 'cooldown'
 
 export interface HyroxStationState {
   order: number

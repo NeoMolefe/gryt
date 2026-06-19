@@ -108,6 +108,7 @@ export async function submitOnboarding(
     warm_up: session.warm_up,
     main_lifts: session.main_lifts,
     accessories: session.accessories,
+    core_stability: session.core_stability,
     conditioning: session.conditioning,
     cooldown: session.cooldown,
     notes: session.notes ?? null,

@@ -1,7 +1,7 @@
 import type { Workout } from '@/types/plan.types'
 import type { ExerciseSection, FlatExercise } from '@/types/session.types'
 
-const SECTION_ORDER: ExerciseSection[] = ['warm_up', 'main_lifts', 'accessories', 'conditioning', 'cooldown']
+const SECTION_ORDER: ExerciseSection[] = ['warm_up', 'main_lifts', 'accessories', 'core_stability', 'conditioning', 'cooldown']
 
 // For HYROX simulation sessions the main body (main_lifts, accessories, conditioning)
 // is replaced by the station sequence — only warm-up and cooldown flow through the

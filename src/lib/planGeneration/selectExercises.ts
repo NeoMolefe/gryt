@@ -16,6 +16,7 @@ export interface SelectedExercises {
   warm_up: LibraryExercise[]
   main_lifts: LibraryExercise[]
   accessories: LibraryExercise[]
+  core_stability: LibraryExercise[]
   conditioning: LibraryExercise | null
   cooldown: LibraryExercise[]
 }
@@ -111,6 +112,23 @@ function oppositePattern(pattern: 'squat' | 'hinge' | null): 'squat' | 'hinge' |
   return null
 }
 
+const CORE_STABILITY_COUNT = 2
+
+// Every session gets 2 dedicated core exercises — drawn from `available`
+// (equipment/archetype/phase filtered only, not narrowed by template.focus)
+// because core work belongs after strength AND after conditioning days
+// alike, not just sessions whose focus happens to list 'core'. rotate() by
+// dayIndex over the 6-exercise core pool means a 2-pick window shifts by 2
+// positions per day, so Day 1 and Day 3 never see the identical pair.
+function selectCoreExercises(
+  available: LibraryExercise[],
+  dayIndex: number,
+  count: number = CORE_STABILITY_COUNT,
+): LibraryExercise[] {
+  const corePool = available.filter((exercise) => exercise.movement_pattern === 'core')
+  return rotate(corePool, dayIndex).slice(0, count)
+}
+
 // Issue 1: within a single session, across main_lifts + accessories combined,
 // no more than 1 exercise of each squat/hinge/push/pull pattern — stacking
 // two heavy lifts of the same pattern (e.g. Front Squat + Romanian Deadlift +
@@ -178,6 +196,7 @@ function selectHyroxExercises(input: SelectExercisesInput): SelectedExercises {
   const mobilityPool = available.filter((exercise) => exercise.category === 'mobility')
   const warm_up = rotate(mobilityPool, dayIndex).slice(0, 3)
   const cooldown = rotate(mobilityPool, dayIndex + 3).slice(0, 2)
+  const core_stability = selectCoreExercises(available, dayIndex)
 
   // Running is the primary conditioning block — selected ahead of stations.
   const runningPool = available.filter((exercise) => HYROX_RUNNING_NAMES.includes(exercise.name))
@@ -235,7 +254,7 @@ function selectHyroxExercises(input: SelectExercisesInput): SelectedExercises {
     main_lifts = enforceMovementPatternLimits([], rotatedPicks, replacementPool).accessories
   }
 
-  return { warm_up, main_lifts, accessories, conditioning, cooldown }
+  return { warm_up, main_lifts, accessories, core_stability, conditioning, cooldown }
 }
 
 export function selectExercises(input: SelectExercisesInput): SelectedExercises {
@@ -251,11 +270,18 @@ export function selectExercises(input: SelectExercisesInput): SelectedExercises 
   const rotatedMobility = rotate(mobilityPool, dayIndex)
   const warm_up = rotatedMobility.slice(0, 3)
   const cooldown = rotate(mobilityPool, dayIndex + 3).slice(0, 2)
+  const core_stability = selectCoreExercises(available, dayIndex)
 
   const focusPool = available.filter((exercise) => template.focus.includes(exercise.category))
 
   const conditioningCandidates = focusPool.filter((exercise) => CONDITIONING_CATEGORIES.includes(exercise.category))
-  const nonConditioningPool = focusPool.filter((exercise) => !CONDITIONING_CATEGORIES.includes(exercise.category))
+  // Core exercises get their own dedicated core_stability section above —
+  // exclude them here so they never compete for a main_lifts/accessories
+  // slot even when template.focus includes 'core' (enforceMovementPatternLimits
+  // doesn't cap 'core' since it's never in conflict with squat/hinge/push/pull).
+  const nonConditioningPool = focusPool.filter(
+    (exercise) => !CONDITIONING_CATEGORIES.includes(exercise.category) && exercise.movement_pattern !== 'core',
+  )
 
   // Prefer exercises not used in yesterday's main_lifts, same exclude-then-
   // fallback pattern already used for accessories below — avoids the same
@@ -330,5 +356,12 @@ export function selectExercises(input: SelectExercisesInput): SelectedExercises 
   const replacementPool = nonConditioningPool.filter((exercise) => !selectedNames.has(exercise.name))
   const deduped = enforceMovementPatternLimits(main_lifts, accessories, replacementPool)
 
-  return { warm_up, main_lifts: deduped.main_lifts, accessories: deduped.accessories, conditioning, cooldown }
+  return {
+    warm_up,
+    main_lifts: deduped.main_lifts,
+    accessories: deduped.accessories,
+    core_stability,
+    conditioning,
+    cooldown,
+  }
 }

@@ -57,6 +57,7 @@ export interface WorkoutSession {
   warm_up: ExerciseBlock[]
   main_lifts: ExerciseBlock[]
   accessories: ExerciseBlock[]
+  core_stability: ExerciseBlock[]
   conditioning: ExerciseBlock | null
   cooldown: ExerciseBlock[]
   notes?: string[]

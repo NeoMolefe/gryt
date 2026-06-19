@@ -66,6 +66,10 @@ function injectExtraAccessory(
       exercise.equipment.includes(equipment) &&
       exercise.archetypes.includes(archetype) &&
       exercise.phases.includes(session.phase) &&
+      // Core exercises have their own dedicated core_stability section —
+      // never inject one into main_lifts/accessories, even when a secondary
+      // goal (e.g. improve_core_strength) maps to the 'core' focus category.
+      exercise.movement_pattern !== 'core' &&
       !existingNames.has(exercise.name),
   )
 

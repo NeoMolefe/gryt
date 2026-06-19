@@ -109,6 +109,7 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
       // conditioning gets layered on top of it. warm_up/cooldown still apply.
       const main_lifts = isSimulationSession ? [] : selected.main_lifts.map(buildBlock)
       const accessories = isSimulationSession ? [] : selected.accessories.map(buildBlock)
+      const core_stability = isSimulationSession ? [] : selected.core_stability.map(buildBlock)
       const conditioning = isSimulationSession ? null : conditioningExercise ? buildBlock(conditioningExercise) : null
 
       sessions.push({
@@ -120,6 +121,7 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
         warm_up: selected.warm_up.map(buildBlock),
         main_lifts,
         accessories,
+        core_stability,
         conditioning,
         cooldown: selected.cooldown.map(buildBlock),
         hyrox_simulation: isSimulationSession ? buildHyroxSimulation(week.phase) : undefined,
