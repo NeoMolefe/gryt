@@ -16,6 +16,8 @@ interface DayCardProps {
 }
 
 export function DayCard({ workout, eventBadgeLabel, injuryFlags, isExpanded, onToggle, onStart }: DayCardProps) {
+  const isHyroxSimulation = Boolean(workout.hyrox_simulation?.length)
+
   return (
     <div className="rounded-2xl border border-border bg-card">
       <button
@@ -53,46 +55,70 @@ export function DayCard({ workout, eventBadgeLabel, injuryFlags, isExpanded, onT
             </section>
           )}
 
-          {workout.main_lifts.length > 0 && (
+          {isHyroxSimulation ? (
             <section>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Main Lifts</h4>
-              <ul className="space-y-2">
-                {workout.main_lifts.map((block) => (
-                  <ExerciseBlockRow key={block.name} block={block} injuryFlags={flagsForExercise(block.name, injuryFlags)} />
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">HYROX Simulation</h4>
+              <ol className="space-y-1.5">
+                {workout.hyrox_simulation!.map((entry) => (
+                  <li
+                    key={entry.order}
+                    className={`flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm ${
+                      entry.type === 'run' ? 'bg-card text-text-secondary' : 'bg-elevated text-text-primary font-medium'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span aria-hidden="true">{entry.type === 'run' ? '🏃' : '⚡'}</span>
+                      {entry.name}
+                    </span>
+                    <span className="text-text-secondary">{entry.distance_or_reps}</span>
+                  </li>
                 ))}
-              </ul>
+              </ol>
             </section>
-          )}
+          ) : (
+            <>
+              {workout.main_lifts.length > 0 && (
+                <section>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Main Lifts</h4>
+                  <ul className="space-y-2">
+                    {workout.main_lifts.map((block) => (
+                      <ExerciseBlockRow key={block.name} block={block} injuryFlags={flagsForExercise(block.name, injuryFlags)} />
+                    ))}
+                  </ul>
+                </section>
+              )}
 
-          {workout.accessories.length > 0 && (
-            <section>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Accessories</h4>
-              <ul className="space-y-2">
-                {workout.accessories.map((block) => (
-                  <ExerciseBlockRow key={block.name} block={block} injuryFlags={flagsForExercise(block.name, injuryFlags)} />
-                ))}
-              </ul>
-            </section>
-          )}
+              {workout.accessories.length > 0 && (
+                <section>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Accessories</h4>
+                  <ul className="space-y-2">
+                    {workout.accessories.map((block) => (
+                      <ExerciseBlockRow key={block.name} block={block} injuryFlags={flagsForExercise(block.name, injuryFlags)} />
+                    ))}
+                  </ul>
+                </section>
+              )}
 
-          {(workout.core_stability ?? []).length > 0 && (
-            <section>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Core Stability</h4>
-              <ul className="space-y-2">
-                {(workout.core_stability ?? []).map((block) => (
-                  <ExerciseBlockRow key={block.name} block={block} injuryFlags={flagsForExercise(block.name, injuryFlags)} />
-                ))}
-              </ul>
-            </section>
-          )}
+              {(workout.core_stability ?? []).length > 0 && (
+                <section>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Core Stability</h4>
+                  <ul className="space-y-2">
+                    {(workout.core_stability ?? []).map((block) => (
+                      <ExerciseBlockRow key={block.name} block={block} injuryFlags={flagsForExercise(block.name, injuryFlags)} />
+                    ))}
+                  </ul>
+                </section>
+              )}
 
-          {workout.conditioning && (
-            <section>
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Conditioning</h4>
-              <ul className="space-y-2">
-                <ExerciseBlockRow block={workout.conditioning} injuryFlags={flagsForExercise(workout.conditioning.name, injuryFlags)} />
-              </ul>
-            </section>
+              {workout.conditioning && (
+                <section>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-secondary">Conditioning</h4>
+                  <ul className="space-y-2">
+                    <ExerciseBlockRow block={workout.conditioning} injuryFlags={flagsForExercise(workout.conditioning.name, injuryFlags)} />
+                  </ul>
+                </section>
+              )}
+            </>
           )}
 
           {workout.cooldown.length > 0 && (
