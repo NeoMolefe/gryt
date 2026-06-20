@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,6 +16,12 @@ export function Login() {
   const refreshProfile = useAuthStore((state) => state.refreshProfile)
   const [serverError, setServerError] = useState<string | null>(null)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
+  const [isSendingReset, setIsSendingReset] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
 
   const {
     register,
@@ -56,6 +62,32 @@ export function Login() {
       setServerError('Unable to continue with Google. Please try again.')
       setIsGoogleLoading(false)
     }
+  }
+
+  async function handleForgotPassword(event: FormEvent) {
+    event.preventDefault()
+    setResetError(null)
+    setIsSendingReset(true)
+
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+
+    setIsSendingReset(false)
+
+    if (error) {
+      setResetError('Unable to send reset link. Please try again.')
+      return
+    }
+
+    setResetSent(true)
+  }
+
+  function handleBackToSignIn() {
+    setShowForgotPassword(false)
+    setForgotPasswordEmail('')
+    setResetSent(false)
+    setResetError(null)
   }
 
   return (
@@ -99,6 +131,14 @@ export function Login() {
             {...register('password')}
           />
 
+          <button
+            type="button"
+            onClick={() => setShowForgotPassword(true)}
+            className="self-end text-sm text-text-secondary no-underline hover:underline"
+          >
+            Forgot password?
+          </button>
+
           {serverError && (
             <p role="alert" className="text-sm text-phase-peak">
               {serverError}
@@ -109,6 +149,54 @@ export function Login() {
             Sign in
           </Button>
         </form>
+
+        {showForgotPassword && (
+          <div className="flex flex-col gap-4 rounded-xl border border-border bg-elevated p-4">
+            {resetSent ? (
+              <>
+                <p className="text-sm text-text-secondary">
+                  Check your inbox — we&apos;ve sent a reset link to {forgotPasswordEmail}.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleBackToSignIn}
+                  className="self-start text-sm text-text-secondary no-underline hover:underline"
+                >
+                  Back to sign in
+                </button>
+              </>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="flex flex-col gap-4" noValidate>
+                <TextField
+                  label="Email"
+                  type="email"
+                  autoComplete="email"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  required
+                />
+
+                {resetError && (
+                  <p role="alert" className="text-sm text-phase-peak">
+                    {resetError}
+                  </p>
+                )}
+
+                <Button type="submit" isLoading={isSendingReset}>
+                  Send reset link
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={handleBackToSignIn}
+                  className="self-start text-sm text-text-secondary no-underline hover:underline"
+                >
+                  Back to sign in
+                </button>
+              </form>
+            )}
+          </div>
+        )}
 
         <p className="text-center text-sm text-text-secondary">
           Don&apos;t have an account?{' '}

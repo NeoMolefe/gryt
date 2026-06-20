@@ -11,6 +11,7 @@ import { Landing } from '@/pages/Landing'
 import { PrivacyPolicy } from '@/pages/PrivacyPolicy'
 import { TermsOfService } from '@/pages/TermsOfService'
 import { RefundPolicy } from '@/pages/RefundPolicy'
+import { ResetPassword } from '@/pages/ResetPassword'
 import { SignUp } from '@/pages/SignUp'
 import { Login } from '@/pages/Login'
 import { GetStarted } from '@/pages/GetStarted'
@@ -71,6 +72,7 @@ function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/sign-up"
             element={
