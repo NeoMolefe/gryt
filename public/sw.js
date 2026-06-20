@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gryt-cache-v3'
+const CACHE_NAME = 'gryt-cache-v4'
 const PRECACHE_URLS = ['/manifest.json', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
