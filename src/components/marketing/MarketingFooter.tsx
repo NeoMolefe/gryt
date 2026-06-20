@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { InstagramIcon } from '@/components/icons/InstagramIcon'
 
 export function MarketingFooter() {
@@ -64,8 +65,8 @@ export function MarketingFooter() {
               }}
             >
               <li>
-                <a
-                  href="/privacy"
+                <Link
+                  to="/privacy-policy"
                   style={{
                     color: 'var(--color-text-primary)',
                     textDecoration: 'none',
@@ -83,11 +84,11 @@ export function MarketingFooter() {
                   }
                 >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="/terms"
+                <Link
+                  to="/terms"
                   style={{
                     color: 'var(--color-text-primary)',
                     textDecoration: 'none',
@@ -105,7 +106,29 @@ export function MarketingFooter() {
                   }
                 >
                   Terms of Service
-                </a>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/refund-policy"
+                  style={{
+                    color: 'var(--color-text-primary)',
+                    textDecoration: 'none',
+                    fontSize: 16,
+                    fontWeight: 500,
+                    letterSpacing: '-0.02em',
+                    padding: '4px 8px',
+                    transition: 'color 0.3s cubic-bezier(0.44,0,0.56,1)',
+                  }}
+                  onMouseEnter={(e) =>
+                    ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-primary)')
+                  }
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-text-secondary)')
+                  }
+                >
+                  Refund Policy
+                </Link>
               </li>
               <li>
                 <a

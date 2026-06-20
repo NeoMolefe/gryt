@@ -8,6 +8,9 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicOnlyRoute } from '@/routes/PublicOnlyRoute'
 import { AppShell } from '@/components/layout/AppShell'
 import { Landing } from '@/pages/Landing'
+import { PrivacyPolicy } from '@/pages/PrivacyPolicy'
+import { TermsOfService } from '@/pages/TermsOfService'
+import { RefundPolicy } from '@/pages/RefundPolicy'
 import { SignUp } from '@/pages/SignUp'
 import { Login } from '@/pages/Login'
 import { GetStarted } from '@/pages/GetStarted'
@@ -65,6 +68,9 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
           <Route
             path="/sign-up"
             element={
