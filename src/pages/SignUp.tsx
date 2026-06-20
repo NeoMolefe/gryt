@@ -5,15 +5,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/Button'
 import { TextField } from '@/components/TextField'
-import { Divider } from '@/components/Divider'
-import { GoogleButton } from '@/components/GoogleButton'
 import { supabase } from '@/lib/supabase'
 import { signUpSchema, type SignUpFormValues } from '@/lib/schemas/auth'
 
 export function SignUp() {
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
   const {
     register,
@@ -39,21 +36,6 @@ export function SignUp() {
     navigate('/get-started')
   }
 
-  async function handleGoogleSignUp() {
-    setIsGoogleLoading(true)
-    setServerError(null)
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/` },
-    })
-
-    if (error) {
-      setServerError('Unable to continue with Google. Please try again.')
-      setIsGoogleLoading(false)
-    }
-  }
-
   return (
     <div className="flex min-h-svh flex-col px-6 py-12">
       <motion.div
@@ -70,10 +52,6 @@ export function SignUp() {
             Start your GRYT journey today.
           </p>
         </div>
-
-        <GoogleButton onClick={handleGoogleSignUp} isLoading={isGoogleLoading} />
-
-        <Divider label="or" />
 
         <form
           onSubmit={handleSubmit(onSubmit)}
