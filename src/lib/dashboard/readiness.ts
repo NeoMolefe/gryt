@@ -1,8 +1,9 @@
 export type ReadinessColor = 'green' | 'amber' | 'red'
 
 export function calculateReadinessScore(sleep: number, energy: number, soreness: number): number {
-  const score = (sleep + energy) * 15 + (6 - soreness) * 10
-  return Math.min(100, Math.max(0, score))
+  const sorenessScore = 6 - soreness
+  const weighted = (sleep * 0.40) + (energy * 0.35) + (sorenessScore * 0.25)
+  return Math.round(Math.min(100, Math.max(0, ((weighted - 1) / 4) * 100)))
 }
 
 export function readinessColor(score: number): ReadinessColor {
