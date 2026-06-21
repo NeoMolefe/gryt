@@ -8,7 +8,7 @@ import type { ChatHistoryEntry, ChatMessage, KwaziRequest, KwaziResponse } from 
 // that whole object gets rendered to the user as plain text instead of just
 // the conversational reply. Strips markdown code fences too, since models
 // sometimes wrap JSON in ```json fences despite instructions not to.
-function unwrapDoubleEncodedReply(reply: string): string {
+export function unwrapDoubleEncodedReply(reply: string): string {
   const trimmed = reply.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
 
   if (!trimmed.startsWith('{') || !trimmed.includes('"reply"')) {

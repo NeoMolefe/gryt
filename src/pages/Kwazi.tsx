@@ -10,7 +10,14 @@ import { HistorySheet } from '@/components/kwazi/HistorySheet'
 import { MessageInput } from '@/components/kwazi/MessageInput'
 import { RestartModal } from '@/components/kwazi/RestartModal'
 import { loadActiveChat, saveActiveChat, clearActiveChat } from '@/lib/kwazi/chatStorage'
-import { archiveChat, deleteChatHistoryEntry, fetchChatHistory, fetchKwaziRemaining, sendKwaziMessage } from '@/lib/kwazi/queries'
+import {
+  archiveChat,
+  deleteChatHistoryEntry,
+  fetchChatHistory,
+  fetchKwaziRemaining,
+  sendKwaziMessage,
+  unwrapDoubleEncodedReply,
+} from '@/lib/kwazi/queries'
 import {
   applyWorkoutAdaptation,
   kwaziOverrideKey,
@@ -39,6 +46,23 @@ function createFreshChat(userId: string, firstName: string): KwaziChatState {
     messages: [createGreeting(firstName)],
     pendingSwap: null,
     startedAt: new Date().toISOString(),
+  }
+}
+
+// Both idempotent — safe to re-run on already-clean text. Applied at load
+// time (repairs any chat persisted before this content was always cleaned
+// at creation, e.g. from an earlier app version) and again at send time
+// (defensive — guarantees the array forwarded to the edge function is never
+// the raw double-encoded JSON envelope or an un-stripped adaptation block,
+// regardless of how it ended up in `chat.messages`).
+function sanitizeMessageContent(content: string): string {
+  return stripWorkoutAdaptationBlock(unwrapDoubleEncodedReply(content))
+}
+
+function sanitizeChatState(state: KwaziChatState): KwaziChatState {
+  return {
+    ...state,
+    messages: state.messages.map((m) => (m.role === 'assistant' ? { ...m, content: sanitizeMessageContent(m.content) } : m)),
   }
 }
 
@@ -100,7 +124,11 @@ export function Kwazi() {
     void (async () => {
       const existing = loadActiveChat(userId)
       if (existing) {
-        setChat(existing)
+        const cleaned = sanitizeChatState(existing)
+        setChat(cleaned)
+        // Repair persisted storage too, so a stale corrupted message doesn't
+        // keep getting reloaded raw on every future visit.
+        saveActiveChat(cleaned)
       } else {
         const fresh = createFreshChat(userId, firstName)
         setChat(fresh)
@@ -146,7 +174,10 @@ export function Kwazi() {
     try {
       const response = await sendKwaziMessage({
         userId,
-        messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+        messages: nextMessages.map((m) => ({
+          role: m.role,
+          content: m.role === 'assistant' ? sanitizeMessageContent(m.content) : m.content,
+        })),
         pendingSwap: chat.pendingSwap,
         currentWorkoutId: todaysWorkout?.id ?? null,
       })
