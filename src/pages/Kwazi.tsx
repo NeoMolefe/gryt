@@ -9,6 +9,7 @@ import { EscalationCard } from '@/components/kwazi/EscalationCard'
 import { HistorySheet } from '@/components/kwazi/HistorySheet'
 import { MessageInput } from '@/components/kwazi/MessageInput'
 import { RestartModal } from '@/components/kwazi/RestartModal'
+import { Toast } from '@/components/Toast'
 import { loadActiveChat, saveActiveChat, clearActiveChat } from '@/lib/kwazi/chatStorage'
 import {
   archiveChat,
@@ -84,8 +85,10 @@ export function Kwazi() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [restartOpen, setRestartOpen] = useState(false)
   const [isRestarting, setIsRestarting] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const historyQuery = useQuery({
     queryKey: ['kwazi-history', userId],
@@ -153,6 +156,12 @@ export function Kwazi() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [chat?.messages.length])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+    }
+  }, [])
 
   async function handleSendText(text: string) {
     if (!chat || !userId || !text.trim() || isSending || blocked) return
@@ -257,6 +266,12 @@ export function Kwazi() {
     saveActiveChat(updated)
   }
 
+  function showAppliedToast() {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+    setToastMessage("✓ Today's session has been updated")
+    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 3000)
+  }
+
   function handleApplyWorkoutAdaptation(message: ChatMessage) {
     if (!todaysWorkout || !message.workoutAdaptation) {
       resolveWorkoutAdaptation(message.id)
@@ -272,7 +287,31 @@ export function Kwazi() {
     } catch {
       // ignore storage failures (e.g. private browsing, quota exceeded)
     }
-    resolveWorkoutAdaptation(message.id)
+
+    // Hardcoded — not another edge function call. This is a fixed
+    // confirmation, not a fresh model response, so there's nothing to ask
+    // Claude for here.
+    const nameForGreeting = profile?.first_name ?? 'Neo'
+    const followUp: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: `Done — I've updated today's session for you. The changes are live when you're ready to start. Go get it, ${nameForGreeting}. 💪`,
+      timestamp: new Date().toISOString(),
+    }
+
+    if (chat) {
+      const updated: KwaziChatState = {
+        ...chat,
+        messages: [
+          ...chat.messages.map((m) => (m.id === message.id ? { ...m, workoutAdaptation: null } : m)),
+          followUp,
+        ],
+      }
+      setChat(updated)
+      saveActiveChat(updated)
+    }
+
+    showAppliedToast()
   }
 
   function handleKeepOriginalWorkout(message: ChatMessage) {
@@ -384,6 +423,8 @@ export function Kwazi() {
         entries={historyQuery.data ?? []}
         onDelete={(id) => void handleDeleteHistory(id)}
       />
+
+      <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
     </motion.div>
   )
 }
