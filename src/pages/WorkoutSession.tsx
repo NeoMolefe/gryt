@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { List, Pause, Play, X } from 'lucide-react'
@@ -84,14 +84,40 @@ export function WorkoutSession() {
   // session this evening, unlike the readiness override's per-tab lifetime.
   const todayIsoForKwazi = new Date().toISOString().slice(0, 10)
   const kwaziKey = workoutId ? kwaziOverrideKey(workoutId, todayIsoForKwazi) : ''
-  const kwaziOverridePayload = useMemo<KwaziOverridePayload | null>(() => {
+
+  function readKwaziOverride(): KwaziOverridePayload | null {
     if (!kwaziKey) return null
+    const raw = localStorage.getItem(kwaziKey)
+    console.log('[WorkoutSession] checking Kwazi override — key:', kwaziKey, 'found:', raw)
+    if (!raw) return null
     try {
-      const raw = localStorage.getItem(kwaziKey)
-      return raw ? (JSON.parse(raw) as KwaziOverridePayload) : null
+      return JSON.parse(raw) as KwaziOverridePayload
     } catch {
       return null
     }
+  }
+
+  const [kwaziOverridePayload, setKwaziOverridePayload] = useState<KwaziOverridePayload | null>(() => readKwaziOverride())
+
+  useEffect(() => {
+    // Re-check on mount/key-change (covers normal navigation), on a
+    // cross-tab storage write, and on visibility change (covers PWA
+    // backgrounding/foregrounding or any same-tab path that doesn't force a
+    // full remount) — a plain useMemo on [kwaziKey] only ever re-reads if
+    // this component happens to remount, which isn't guaranteed.
+    setKwaziOverridePayload(readKwaziOverride())
+
+    function handlePotentialChange() {
+      setKwaziOverridePayload(readKwaziOverride())
+    }
+
+    window.addEventListener('storage', handlePotentialChange)
+    document.addEventListener('visibilitychange', handlePotentialChange)
+    return () => {
+      window.removeEventListener('storage', handlePotentialChange)
+      document.removeEventListener('visibilitychange', handlePotentialChange)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kwaziKey])
 
   const existingLocalSession = userId ? loadActiveSession(userId) : null

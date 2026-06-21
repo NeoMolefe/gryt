@@ -264,9 +264,11 @@ export function Kwazi() {
     }
     const adapted = applyWorkoutAdaptation(todaysWorkout, message.workoutAdaptation)
     const today = new Date().toISOString().slice(0, 10)
+    const key = kwaziOverrideKey(todaysWorkout.id, today)
     const payload: KwaziOverridePayload = { workout: adapted, reason: message.workoutAdaptation.reason }
+    console.log('[Kwazi] applying workout adaptation — key:', key, 'workoutId:', todaysWorkout.id, 'date:', today, 'payload:', payload)
     try {
-      localStorage.setItem(kwaziOverrideKey(todaysWorkout.id, today), JSON.stringify(payload))
+      localStorage.setItem(key, JSON.stringify(payload))
     } catch {
       // ignore storage failures (e.g. private browsing, quota exceeded)
     }
