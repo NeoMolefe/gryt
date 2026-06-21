@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { getTrainingForLabel } from '@/lib/plan/trainingForLabel'
 import { useAuthStore } from '@/store/authStore'
@@ -42,6 +42,7 @@ function getInitials(firstName: string | null | undefined, fullName: string | nu
 }
 
 export function Dashboard() {
+  const navigate = useNavigate()
   const {
     isLoading,
     error,
@@ -171,9 +172,19 @@ export function Dashboard() {
         {(isRestDay && mobilityRoutine) || todaysWorkout ? (
           <div id="tutorial-todays-workout">
             {isRestDay && mobilityRoutine ? (
-              <RestDayCard phase={currentPhase} routine={mobilityRoutine} recoveryTip={recoveryTip} onStart={() => {}} />
+              <RestDayCard
+                phase={currentPhase}
+                routine={mobilityRoutine}
+                recoveryTip={recoveryTip}
+                // No-op (not a deliberate design choice — a real gap): a
+                // mobility routine has no corresponding `workouts` row, and
+                // there's no session-logger route for ad-hoc routines like
+                // there is for real workouts (`/session/:workoutId`). Wire
+                // this up once that flow exists.
+                onStart={() => {}}
+              />
             ) : (
-              <WorkoutCard workout={todaysWorkout!} onStart={() => {}} />
+              <WorkoutCard workout={todaysWorkout!} onStart={() => navigate(`/session/${todaysWorkout!.id}`)} />
             )}
           </div>
         ) : null}
