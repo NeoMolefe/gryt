@@ -11,6 +11,15 @@ import { MessageInput } from '@/components/kwazi/MessageInput'
 import { RestartModal } from '@/components/kwazi/RestartModal'
 import { loadActiveChat, saveActiveChat, clearActiveChat } from '@/lib/kwazi/chatStorage'
 import { archiveChat, deleteChatHistoryEntry, fetchChatHistory, fetchKwaziRemaining, sendKwaziMessage } from '@/lib/kwazi/queries'
+import {
+  applyWorkoutAdaptation,
+  kwaziOverrideKey,
+  parseWorkoutAdaptation,
+  stripWorkoutAdaptationBlock,
+  type KwaziOverridePayload,
+} from '@/lib/kwazi/workoutAdaptation'
+import { fetchActivePlan, fetchWorkouts } from '@/lib/dashboard/queries'
+import { findTodaysWorkout, getCurrentWeekNumber } from '@/lib/dashboard/schedule'
 import type { ChatMessage, KwaziChatState } from '@/types/kwazi.types'
 
 const REMAINING_WARNING_THRESHOLD = 3
@@ -59,6 +68,31 @@ export function Kwazi() {
     queryFn: () => fetchChatHistory(userId!),
     enabled: !!userId && historyOpen,
   })
+
+  // Same query keys used on the Dashboard/WorkoutSession — React Query
+  // dedupes these, so this isn't an extra fetch in practice. Needed so Kwazi
+  // can be told which workout is actually today's, not just the edge
+  // function's previous fallback of "the first workout in the plan".
+  const planQuery = useQuery({
+    queryKey: ['plan', userId],
+    queryFn: () => fetchActivePlan(userId!),
+    enabled: !!userId,
+  })
+  const plan = planQuery.data ?? null
+
+  const workoutsQuery = useQuery({
+    queryKey: ['workouts', plan?.id],
+    queryFn: () => fetchWorkouts(plan!.id),
+    enabled: !!plan?.id,
+  })
+
+  const todaysWorkout = (() => {
+    if (!plan) return null
+    const now = new Date()
+    const weekNumber = getCurrentWeekNumber(plan.start_date, plan.total_weeks, now)
+    const availabilityDays = profile?.availability_days ?? 0
+    return findTodaysWorkout(workoutsQuery.data ?? [], weekNumber, availabilityDays, plan.start_date, now)
+  })()
 
   useEffect(() => {
     if (!userId) return
@@ -114,6 +148,7 @@ export function Kwazi() {
         userId,
         messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
         pendingSwap: chat.pendingSwap,
+        currentWorkoutId: todaysWorkout?.id ?? null,
       })
 
       setRemaining(response.remaining)
@@ -126,13 +161,19 @@ export function Kwazi() {
         return
       }
 
+      const rawReply = response.reply ?? "Kwazi's listening."
+      const workoutAdaptation = parseWorkoutAdaptation(rawReply)
+
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: response.reply ?? "Kwazi's listening.",
+        // Strip the <WORKOUT_ADAPTATION> block — users see Kwazi's
+        // conversational text only, never the raw JSON.
+        content: workoutAdaptation ? stripWorkoutAdaptationBlock(rawReply) : rawReply,
         timestamp: new Date().toISOString(),
         chips: response.chips ?? null,
         escalate: response.escalate ?? false,
+        workoutAdaptation,
       }
 
       const updated: KwaziChatState = {
@@ -169,6 +210,39 @@ export function Kwazi() {
 
   function handleChipSelect(value: string) {
     void handleSendText(value)
+  }
+
+  // Resolving the card (either button) clears workoutAdaptation from the
+  // message so it stops rendering, matching "Keep original" dismissing with
+  // no further action and "Apply" persisting the override then dismissing.
+  function resolveWorkoutAdaptation(messageId: string) {
+    if (!chat) return
+    const updated: KwaziChatState = {
+      ...chat,
+      messages: chat.messages.map((m) => (m.id === messageId ? { ...m, workoutAdaptation: null } : m)),
+    }
+    setChat(updated)
+    saveActiveChat(updated)
+  }
+
+  function handleApplyWorkoutAdaptation(message: ChatMessage) {
+    if (!todaysWorkout || !message.workoutAdaptation) {
+      resolveWorkoutAdaptation(message.id)
+      return
+    }
+    const adapted = applyWorkoutAdaptation(todaysWorkout, message.workoutAdaptation)
+    const today = new Date().toISOString().slice(0, 10)
+    const payload: KwaziOverridePayload = { workout: adapted, reason: message.workoutAdaptation.reason }
+    try {
+      localStorage.setItem(kwaziOverrideKey(todaysWorkout.id, today), JSON.stringify(payload))
+    } catch {
+      // ignore storage failures (e.g. private browsing, quota exceeded)
+    }
+    resolveWorkoutAdaptation(message.id)
+  }
+
+  function handleKeepOriginalWorkout(message: ChatMessage) {
+    resolveWorkoutAdaptation(message.id)
   }
 
   async function handleRestartConfirm() {
@@ -235,6 +309,8 @@ export function Kwazi() {
               message={message}
               onChipSelect={handleChipSelect}
               chipsDisabled={isSending || blocked || message.id !== lastMessageId}
+              onApplyWorkoutAdaptation={() => handleApplyWorkoutAdaptation(message)}
+              onKeepOriginalWorkout={() => handleKeepOriginalWorkout(message)}
             />
             {message.escalate && (
               <div className="mt-2">

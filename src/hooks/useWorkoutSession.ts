@@ -20,7 +20,7 @@ import { createNotificationIfEnabled } from '@/lib/notifications/queries'
 import { loadActiveSession, saveActiveSession, clearActiveSession } from '@/lib/session/sessionStorage'
 import { playRestEndBeep, pulseVibration } from '@/lib/session/timerFeedback'
 import type { ActiveSessionState, FlatExercise, HyroxStationState, RecapStats } from '@/types/session.types'
-import type { HyroxSimulationStation } from '@/types/plan.types'
+import type { HyroxSimulationStation, Workout } from '@/types/plan.types'
 import type { UnlockedBadge } from '@/types/gamification.types'
 
 const SESSION_XP = 100
@@ -85,18 +85,28 @@ function parseSegmentDistanceM(distanceOrReps: string): number {
   return m ? parseInt(m[1]!, 10) : 0
 }
 
-export function useWorkoutSession(workoutId: string) {
+// `effectiveWorkout` is resolved by the caller (WorkoutSession.tsx), which
+// may apply readiness/Kwazi adaptations or gate on a pending user choice by
+// passing null. This hook never writes the adapted content back anywhere —
+// it only reads `effectiveWorkout` to drive the active session. Passing null
+// here is what makes the readiness/recovery/rest gates work: the existing
+// `!workout` guard below simply doesn't run the init effect until the caller
+// resolves a choice and effectiveWorkout becomes non-null.
+export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout | null) {
   const userId = useAuthStore((state) => state.session?.user.id ?? null)
   const profile = useAuthStore((state) => state.profile)
   const refreshProfile = useAuthStore((state) => state.refreshProfile)
 
+  // Still queried here (same cache key as the caller's own query, so this is
+  // not an extra network request) purely to drive the loading flag — actual
+  // session content always comes from `effectiveWorkout`.
   const workoutQuery = useQuery({
     queryKey: ['workout', workoutId],
     queryFn: () => fetchWorkoutById(workoutId),
     enabled: !!workoutId,
   })
 
-  const workout = workoutQuery.data ?? null
+  const workout = effectiveWorkout
   const flatExercises = useMemo(() => (workout ? flattenExercises(workout) : []), [workout])
 
   const [state, setState] = useState<ActiveSessionState | null>(null)

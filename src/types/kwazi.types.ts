@@ -1,3 +1,5 @@
+import type { WorkoutAdaptation } from '@/lib/kwazi/workoutAdaptation'
+
 export type ChatRole = 'user' | 'assistant'
 
 export interface ChatMessage {
@@ -7,6 +9,9 @@ export interface ChatMessage {
   timestamp: string
   chips?: string[] | null
   escalate?: boolean
+  // Parsed from a `<WORKOUT_ADAPTATION>` block in the raw reply, client-side.
+  // Set to null once the user has resolved the card (applied or kept original).
+  workoutAdaptation?: WorkoutAdaptation | null
 }
 
 export type SwapScope = 'single_session' | 'this_week' | 'permanent'

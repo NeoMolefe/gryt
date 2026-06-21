@@ -1,17 +1,20 @@
 import { ChipRow } from '@/components/kwazi/ChipRow'
+import { WorkoutAdaptationCard } from '@/components/kwazi/WorkoutAdaptationCard'
 import type { ChatMessage } from '@/types/kwazi.types'
 
 interface ChatBubbleProps {
   message: ChatMessage
   onChipSelect?: (value: string) => void
   chipsDisabled?: boolean
+  onApplyWorkoutAdaptation?: () => void
+  onKeepOriginalWorkout?: () => void
 }
 
 function formatTime(timestamp: string): string {
   return new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
-export function ChatBubble({ message, onChipSelect, chipsDisabled }: ChatBubbleProps) {
+export function ChatBubble({ message, onChipSelect, chipsDisabled, onApplyWorkoutAdaptation, onKeepOriginalWorkout }: ChatBubbleProps) {
   const isUser = message.role === 'user'
 
   return (
@@ -26,6 +29,13 @@ export function ChatBubble({ message, onChipSelect, chipsDisabled }: ChatBubbleP
       <span className="mt-1 px-1 text-xs text-text-muted">{formatTime(message.timestamp)}</span>
       {!isUser && message.chips && message.chips.length > 0 && onChipSelect && (
         <ChipRow chips={message.chips} onSelect={onChipSelect} disabled={chipsDisabled} />
+      )}
+      {!isUser && message.workoutAdaptation && onApplyWorkoutAdaptation && onKeepOriginalWorkout && (
+        <WorkoutAdaptationCard
+          adaptation={message.workoutAdaptation}
+          onApply={onApplyWorkoutAdaptation}
+          onKeepOriginal={onKeepOriginalWorkout}
+        />
       )}
     </div>
   )
