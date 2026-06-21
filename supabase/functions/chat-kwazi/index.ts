@@ -435,7 +435,17 @@ async function callClaude(systemPrompt: string, messages: ChatMessage[], apiKey:
     const parsed = JSON.parse(text)
     return { reply: String(parsed.reply ?? text), chips: Array.isArray(parsed.chips) ? parsed.chips : null }
   } catch {
-    return { reply: text, chips: null }
+    // Outer JSON.parse failed (e.g. malformed escaping somewhere in the
+    // model's output) — before giving up and returning the entire raw text
+    // (which often still looks like a JSON envelope and would otherwise
+    // render verbatim in the chat UI), try to pull the reply string out with
+    // a regex so the conversational text survives even when the envelope
+    // around it doesn't parse cleanly.
+    const replyMatch = text.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/s)
+    const reply = replyMatch
+      ? replyMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"')
+      : text
+    return { reply, chips: null }
   }
 }
 
