@@ -167,9 +167,10 @@ export function Kwazi() {
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        // Strip the <WORKOUT_ADAPTATION> block — users see Kwazi's
-        // conversational text only, never the raw JSON.
-        content: workoutAdaptation ? stripWorkoutAdaptationBlock(rawReply) : rawReply,
+        // Always strip the <WORKOUT_ADAPTATION> block — users see Kwazi's
+        // conversational text only, never the raw JSON. No-op when no block
+        // is present, so this is safe to call unconditionally.
+        content: stripWorkoutAdaptationBlock(rawReply),
         timestamp: new Date().toISOString(),
         chips: response.chips ?? null,
         escalate: response.escalate ?? false,

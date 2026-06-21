@@ -1,6 +1,28 @@
 import { supabase } from '@/lib/supabase'
 import type { ChatHistoryEntry, ChatMessage, KwaziRequest, KwaziResponse } from '@/types/kwazi.types'
 
+// Defensive unwrap: if the edge function's own JSON parsing of Claude's
+// output failed server-side (e.g. malformed escaping), its fallback returns
+// the model's entire raw text as `reply` — which is often itself a
+// JSON-looking string like {"reply": "...", "chips": [...]}. Without this,
+// that whole object gets rendered to the user as plain text instead of just
+// the conversational reply. Strips markdown code fences too, since models
+// sometimes wrap JSON in ```json fences despite instructions not to.
+function unwrapDoubleEncodedReply(reply: string): string {
+  const trimmed = reply.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
+
+  if (!trimmed.startsWith('{') || !trimmed.includes('"reply"')) {
+    return reply
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed)
+    return typeof parsed.reply === 'string' ? parsed.reply : reply
+  } catch {
+    return reply
+  }
+}
+
 export async function sendKwaziMessage(input: KwaziRequest): Promise<KwaziResponse> {
   const { data, error } = await supabase.functions.invoke<KwaziResponse>('chat-kwazi', { body: input })
 
@@ -12,7 +34,10 @@ export async function sendKwaziMessage(input: KwaziRequest): Promise<KwaziRespon
     throw new Error('No response from Kwazi')
   }
 
-  return data
+  return {
+    ...data,
+    reply: data.reply ? unwrapDoubleEncodedReply(data.reply) : data.reply,
+  }
 }
 
 const DAILY_LIMIT = 10
