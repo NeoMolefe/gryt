@@ -1,6 +1,7 @@
 import type { ExperienceLevel } from '@/types/onboarding'
 import type { Archetype, Equipment, Focus, Phase } from '@/types/plan.types'
 import { EXERCISE_LIBRARY, type LibraryExercise, type MovementPattern } from './exerciseLibrary'
+import { findBlueprint, type SessionBlueprint } from './sessionBlueprints'
 import type { SessionTemplate } from './selectSplit'
 
 export interface SelectExercisesInput {
@@ -216,6 +217,48 @@ function enforceMovementPatternLimits(
   return { main_lifts: keptMain, accessories: keptAccessories }
 }
 
+// Fills each blueprint slot from the sub-pool matching its pattern (and
+// optional focus_filter), preferring exercises not used in yesterday's
+// main_lifts. A slot with no available exercise (e.g. bodyweight user has no
+// lat pulldown) is skipped gracefully — required slots log a warning so a
+// silently-incomplete session is at least visible in logs, optional slots
+// (e.g. Lower Body's second hinge) skip silently.
+function selectBlueprintMainLifts(
+  blueprint: SessionBlueprint,
+  available: LibraryExercise[],
+  dayIndex: number,
+  previousMainLiftNames: string[],
+  sessionName: string,
+): LibraryExercise[] {
+  const usedNames = new Set<string>()
+  const main_lifts: LibraryExercise[] = []
+
+  for (const slot of blueprint.main_lift_slots) {
+    const subPool = available.filter((exercise) => {
+      if (exercise.movement_pattern !== slot.pattern) return false
+      if (slot.focus_filter && !slot.focus_filter.includes(exercise.category)) return false
+      if (CONDITIONING_CATEGORIES.includes(exercise.category)) return false
+      if (usedNames.has(exercise.name)) return false
+      return true
+    })
+
+    if (subPool.length === 0) {
+      if (slot.required) {
+        console.warn(`[selectExercises] No exercise found for slot pattern=${slot.pattern} in session=${sessionName}`)
+      }
+      continue
+    }
+
+    const rotated = rotate(subPool, dayIndex + main_lifts.length)
+    const freshPick = rotated.find((exercise) => !previousMainLiftNames.includes(exercise.name)) ?? rotated[0]
+
+    main_lifts.push(freshPick)
+    usedNames.add(freshPick.name)
+  }
+
+  return main_lifts
+}
+
 // HYROX sessions are structured fundamentally differently from the standard
 // strength-first template: running is the primary conditioning block, HYROX
 // station exercises (sled push/pull, wall ball, farmers carry, burpee broad
@@ -327,35 +370,48 @@ export function selectExercises(input: SelectExercisesInput): SelectedExercises 
     return [...nonPrevious, ...previous]
   }
 
-  // Power/plyometric-focused sessions must contain a matching exercise in main_lifts,
-  // even though those exercises are not flagged as compounds.
-  const isPowerFocus = (focus: Focus): boolean => focus === 'power' || focus === 'plyometric'
-  const hasPowerFocus = template.focus.some(isPowerFocus)
-  const powerCandidates = preferUnused(
-    rotate(
-      nonConditioningPool.filter((exercise) => hasPowerFocus && isPowerFocus(exercise.category)),
-      dayIndex,
-    ),
-  )
+  const blueprint = findBlueprint(template.session_name)
+  const isBlueprintSession = Boolean(blueprint && blueprint.main_lift_slots.length > 0)
 
-  const sortedRest = preferUnused(
-    rotate(
-      [...nonConditioningPool]
-        .filter((exercise) => !(hasPowerFocus && isPowerFocus(exercise.category)))
-        .sort((a, b) => Number(b.is_compound) - Number(a.is_compound)),
-      dayIndex,
-    ),
-  )
+  let main_lifts: LibraryExercise[]
 
-  const mainCount = Math.min(5, Math.max(3, Math.min(nonConditioningPool.length, 4)))
+  if (blueprint && isBlueprintSession) {
+    main_lifts = selectBlueprintMainLifts(blueprint, available, dayIndex, previousMainLiftNames, template.session_name)
+  } else {
+    // FALLBACK PATH: sessions without a blueprint (or conditioning sessions,
+    // whose blueprint entry deliberately has empty main_lift_slots) keep the
+    // pre-blueprint mainCount logic exactly as before.
 
-  const main_lifts: LibraryExercise[] = []
-  if (powerCandidates.length > 0) {
-    main_lifts.push(powerCandidates[0])
-  }
-  for (const exercise of sortedRest) {
-    if (main_lifts.length >= mainCount) break
-    main_lifts.push(exercise)
+    // Power/plyometric-focused sessions must contain a matching exercise in main_lifts,
+    // even though those exercises are not flagged as compounds.
+    const isPowerFocus = (focus: Focus): boolean => focus === 'power' || focus === 'plyometric'
+    const hasPowerFocus = template.focus.some(isPowerFocus)
+    const powerCandidates = preferUnused(
+      rotate(
+        nonConditioningPool.filter((exercise) => hasPowerFocus && isPowerFocus(exercise.category)),
+        dayIndex,
+      ),
+    )
+
+    const sortedRest = preferUnused(
+      rotate(
+        [...nonConditioningPool]
+          .filter((exercise) => !(hasPowerFocus && isPowerFocus(exercise.category)))
+          .sort((a, b) => Number(b.is_compound) - Number(a.is_compound)),
+        dayIndex,
+      ),
+    )
+
+    const mainCount = Math.min(5, Math.max(3, Math.min(nonConditioningPool.length, 4)))
+
+    main_lifts = []
+    if (powerCandidates.length > 0) {
+      main_lifts.push(powerCandidates[0])
+    }
+    for (const exercise of sortedRest) {
+      if (main_lifts.length >= mainCount) break
+      main_lifts.push(exercise)
+    }
   }
 
   const mainNames = new Set(main_lifts.map((exercise) => exercise.name))
@@ -364,7 +420,11 @@ export function selectExercises(input: SelectExercisesInput): SelectedExercises 
   const nonPrevious = remainingPool.filter((exercise) => !previousAccessoryNames.includes(exercise.name))
   const previous = remainingPool.filter((exercise) => previousAccessoryNames.includes(exercise.name))
   const accessoryPool = nonPrevious.length >= 3 ? nonPrevious : [...nonPrevious, ...previous]
-  const accessories = rotate(accessoryPool, dayIndex).slice(0, Math.min(3, accessoryPool.length))
+  // Step 4: blueprint sessions already have 4 (or 2, for Push/Pull Day)
+  // complete main lifts — cap accessories at 2 so the session doesn't
+  // balloon. Conditioning/fallback sessions keep the existing cap of 3.
+  const accessoryCap = isBlueprintSession ? 2 : 3
+  const accessories = rotate(accessoryPool, dayIndex).slice(0, Math.min(accessoryCap, accessoryPool.length))
 
   let conditioning: LibraryExercise | null = null
   if (conditioningCandidates.length > 0) {

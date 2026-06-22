@@ -13,15 +13,9 @@ export type ConditioningType = 'steady_state' | 'interval' | 'sprint' | 'circuit
 // appear as a themed set (Issue 2); pull_accessory (shoulder health work, e.g.
 // face pulls) and core are never capped for the same reason core has its own
 // dedicated core_stability section.
-// 'push'/'pull' are the pre-blueprint-spec values, still used by every
-// existing exercise until GRYT_SESSION_BLUEPRINTS_SPEC.md Step 1 retags the
-// library to the four directional variants below — kept in the union so the
-// current library still type-checks until that retagging lands.
 export type MovementPattern =
   | 'squat'
   | 'hinge'
-  | 'push'
-  | 'pull'
   | 'push_horizontal'
   | 'push_vertical'
   | 'pull_horizontal'
@@ -161,7 +155,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Pull shoulder blades together and down', 'Lower the bar with control to your chest', 'Drive feet into the floor'],
     is_compound: true,
-    movement_pattern: 'push',
+    movement_pattern: 'push_horizontal',
   },
   {
     name: 'Overhead Press',
@@ -175,7 +169,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Brace your core, ribs down', 'Press in a straight line overhead', 'Squeeze glutes to protect the lower back'],
     is_compound: true,
-    movement_pattern: 'push',
+    movement_pattern: 'push_vertical',
     min_experience: 'advanced',
   },
   {
@@ -190,7 +184,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Hinge to roughly 45 degrees', 'Pull the bar to your lower ribs', 'Avoid jerking the weight up'],
     is_compound: true,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_horizontal',
   },
   {
     name: 'Pull-Up',
@@ -205,7 +199,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Start from a full hang', 'Drive elbows down and back', 'Avoid kipping unless trained'],
     home_alternative: 'Band-assisted pull-up or inverted row',
     is_compound: true,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_vertical',
     min_experience: 'intermediate',
   },
   {
@@ -221,7 +215,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Underhand grip, shoulder width', 'Drive elbows to your hips', 'Control the lowering phase'],
     home_alternative: 'Band-assisted chin-up or inverted row',
     is_compound: true,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_vertical',
     min_experience: 'intermediate',
   },
   {
@@ -311,7 +305,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Keep a straight line from head to heels', 'Lower chest close to the floor', 'Press through the full hand'],
     is_compound: true,
-    movement_pattern: 'push',
+    movement_pattern: 'push_horizontal',
   },
   {
     name: 'Dip',
@@ -326,7 +320,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Lean slightly forward', 'Lower until shoulders feel a stretch', 'Press back up to lockout'],
     home_alternative: 'Close-grip push-up',
     is_compound: true,
-    movement_pattern: 'push',
+    movement_pattern: 'push_horizontal',
     min_experience: 'intermediate',
   },
 
@@ -991,7 +985,9 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Keep elbows pinned to your sides', 'Control the lowering phase', 'Avoid swinging the weight'],
     is_compound: false,
-    movement_pattern: 'pull',
+    // Isolation arm work, not a primary pull pattern — never competes for a
+    // blueprint pull_horizontal/pull_vertical main_lift slot.
+    movement_pattern: 'pull_accessory',
   },
   {
     name: 'Tricep Pushdown',
@@ -1005,7 +1001,9 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Keep elbows fixed at your sides', 'Extend fully without locking out hard', 'Control the return'],
     is_compound: false,
-    movement_pattern: 'push',
+    // Isolation triceps work, not a primary push pattern — no push_accessory
+    // bucket exists, so this never competes for a blueprint main_lift slot.
+    movement_pattern: 'other',
   },
   {
     name: 'Lateral Raise',
@@ -1019,7 +1017,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Lead with the elbows', 'Raise to shoulder height', 'Avoid using momentum'],
     is_compound: false,
-    movement_pattern: 'push',
+    movement_pattern: 'other',
   },
   {
     name: 'Face Pull',
@@ -1033,7 +1031,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 5,
     coaching_cues: ['Pull to your forehead', 'Rotate shoulders externally at the end', 'Keep elbows high'],
     is_compound: false,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_accessory',
   },
   {
     name: 'Leg Curl',
@@ -1148,7 +1146,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Squeeze shoulder blades together', 'Keep arms straight', 'Control the return'],
     home_alternative: 'Arm circles',
     is_compound: false,
-    movement_pattern: 'other',
+    movement_pattern: 'pull_accessory',
   },
   {
     name: 'Leg Swing',
@@ -1536,7 +1534,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Control the descent', 'Press to full lockout', 'Neutral wrist throughout'],
     is_compound: true,
-    movement_pattern: 'push',
+    movement_pattern: 'push_horizontal',
   },
   {
     name: 'Incline Dumbbell Press',
@@ -1550,7 +1548,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['30-45 degree incline', 'Slight arc on the press', 'Avoid flaring elbows'],
     is_compound: true,
-    movement_pattern: 'push',
+    movement_pattern: 'push_horizontal',
     min_experience: 'intermediate',
   },
   {
@@ -1565,7 +1563,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Hips high, inverted V shape', 'Lower head toward floor', 'Press back to start'],
     is_compound: false,
-    movement_pattern: 'push',
+    movement_pattern: 'push_vertical',
   },
   {
     name: 'Dumbbell Overhead Press',
@@ -1579,7 +1577,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Press directly overhead', 'Avoid excessive arch', 'Control the descent'],
     is_compound: true,
-    movement_pattern: 'push',
+    movement_pattern: 'push_vertical',
   },
   {
     name: 'Cable Chest Fly',
@@ -1593,7 +1591,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Slight bend in elbow throughout', 'Feel the stretch at the bottom', 'Squeeze at the top'],
     is_compound: false,
-    movement_pattern: 'push',
+    movement_pattern: 'push_horizontal',
   },
   {
     name: 'Landmine Press',
@@ -1607,7 +1605,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Single arm, staggered stance', 'Drive from the hip', 'Full lockout at the top'],
     is_compound: true,
-    movement_pattern: 'push',
+    movement_pattern: 'push_vertical',
     min_experience: 'intermediate',
   },
 
@@ -1624,7 +1622,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Lean back slightly', 'Pull to upper chest', 'Control the return'],
     is_compound: true,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_vertical',
   },
   {
     name: 'Seated Cable Row',
@@ -1638,7 +1636,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Drive elbows back', 'Squeeze shoulder blades', 'Avoid rounding forward'],
     is_compound: true,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_horizontal',
   },
   {
     name: 'Dumbbell Row',
@@ -1652,7 +1650,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Brace on the bench', 'Elbow close to body', 'Full stretch at the bottom'],
     is_compound: false,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_horizontal',
   },
   {
     name: 'Inverted Row',
@@ -1666,7 +1664,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Body straight like a plank', 'Pull chest to bar', 'Easier = raise bar, harder = lower it'],
     is_compound: true,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_horizontal',
   },
   {
     name: 'Cable Face Pull',
@@ -1680,7 +1678,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 6,
     coaching_cues: ['Pull to face height', 'External rotate at the top', 'Light weight, feel the rear delt'],
     is_compound: false,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_accessory',
   },
   {
     name: 'Chest-Supported Row',
@@ -1694,7 +1692,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Chest on pad removes lower back', 'Full range of motion', 'Squeeze at the top'],
     is_compound: true,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_horizontal',
   },
   {
     name: 'Single Arm Lat Pulldown',
@@ -1708,7 +1706,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 7,
     coaching_cues: ['Control rotation', 'Full stretch at top', 'Drive elbow to hip'],
     is_compound: false,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_vertical',
   },
   {
     name: 'Meadows Row',
@@ -1722,7 +1720,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     default_rpe: 8,
     coaching_cues: ['Landmine setup, perpendicular stance', 'Drive elbow high and wide', 'Massive stretch at bottom'],
     is_compound: true,
-    movement_pattern: 'pull',
+    movement_pattern: 'pull_horizontal',
     min_experience: 'advanced',
   },
 
