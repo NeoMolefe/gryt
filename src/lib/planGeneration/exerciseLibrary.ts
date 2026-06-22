@@ -3,14 +3,34 @@ import type { ExperienceLevel } from '@/types/onboarding'
 
 export type ConditioningType = 'steady_state' | 'interval' | 'sprint' | 'circuit' | 'tabata'
 
-// squat/hinge/push/pull are the patterns selectExercises.ts caps at 1-per-session
-// (Issue 1) — stacking two heavy lifts of the same pattern in one session is a
-// real same-muscle-group overload risk, not just a variety complaint.
-// carry/core/conditioning/other are never capped: HYROX station/circuit work
-// (is_hyrox_station: true) is deliberately tagged conditioning/carry/other so
-// the per-session pattern cap never conflicts with station-circuit content
-// that's meant to appear as a themed set (Issue 2).
-export type MovementPattern = 'squat' | 'hinge' | 'push' | 'pull' | 'carry' | 'core' | 'conditioning' | 'other'
+// squat/hinge/push_horizontal/push_vertical/pull_horizontal/pull_vertical are
+// the patterns selectExercises.ts caps per session (Issue 1) — stacking two
+// heavy lifts of the same pattern in one session is a real same-muscle-group
+// overload risk, not just a variety complaint. carry/core/conditioning/other/
+// pull_accessory are never capped: HYROX station/circuit work (is_hyrox_station:
+// true) is deliberately tagged conditioning/carry/other so the per-session
+// pattern cap never conflicts with station-circuit content that's meant to
+// appear as a themed set (Issue 2); pull_accessory (shoulder health work, e.g.
+// face pulls) and core are never capped for the same reason core has its own
+// dedicated core_stability section.
+// 'push'/'pull' are the pre-blueprint-spec values, still used by every
+// existing exercise until GRYT_SESSION_BLUEPRINTS_SPEC.md Step 1 retags the
+// library to the four directional variants below — kept in the union so the
+// current library still type-checks until that retagging lands.
+export type MovementPattern =
+  | 'squat'
+  | 'hinge'
+  | 'push'
+  | 'pull'
+  | 'push_horizontal'
+  | 'push_vertical'
+  | 'pull_horizontal'
+  | 'pull_vertical'
+  | 'pull_accessory'
+  | 'carry'
+  | 'core'
+  | 'conditioning'
+  | 'other'
 
 export interface LibraryExercise {
   name: string

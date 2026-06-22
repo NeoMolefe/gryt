@@ -147,30 +147,48 @@ function selectCoreExercises(
 }
 
 // Issue 1: within a single session, across main_lifts + accessories combined,
-// no more than 1 exercise of each squat/hinge/push/pull pattern — stacking
-// two heavy lifts of the same pattern (e.g. Front Squat + Romanian Deadlift +
-// Conventional Deadlift in one session) is a real same-muscle-group overload
-// risk, not just a variety complaint. carry/core/conditioning/other patterns
-// are never capped — HYROX station circuits are deliberately tagged that way
-// so this never conflicts with Issue 2's station-content requirement.
+// cap each movement pattern at the count below — stacking two heavy lifts of
+// the same pattern (e.g. Front Squat + Romanian Deadlift + Conventional
+// Deadlift in one session) is a real same-muscle-group overload risk, not
+// just a variety complaint. hinge caps at 2 (not 1) because Lower Body
+// sessions intentionally pair two hinge exercises. squat/push_horizontal/
+// push_vertical/pull_horizontal/pull_vertical cap at 1 each — Upper Body
+// sessions intentionally carry one horizontal + one vertical push and one
+// horizontal + one vertical pull, so those four are independent caps, not a
+// combined push/pull cap. Patterns with no entry here (carry/core/
+// conditioning/other/pull_accessory) are never capped — HYROX station
+// circuits and shoulder-health accessory work are deliberately tagged that
+// way so this never conflicts with Issue 2's station-content requirement.
 // main_lifts are prescribed first and always win ties; a conflicting
 // accessory is swapped for a non-conflicting replacement where one exists in
 // `replacementPool`, otherwise the slot is dropped rather than kept in conflict.
-const CAPPED_PATTERNS: ReadonlySet<MovementPattern> = new Set(['squat', 'hinge', 'push', 'pull'])
+const PATTERN_CAPS: Partial<Record<MovementPattern, number>> = {
+  squat: 1,
+  hinge: 2,
+  push_horizontal: 1,
+  push_vertical: 1,
+  pull_horizontal: 1,
+  pull_vertical: 1,
+}
 
 function enforceMovementPatternLimits(
   mainLifts: LibraryExercise[],
   accessories: LibraryExercise[],
   replacementPool: LibraryExercise[],
 ): { main_lifts: LibraryExercise[]; accessories: LibraryExercise[] } {
-  const claimed = new Set<MovementPattern>()
+  const claimedCounts = new Map<MovementPattern, number>()
   const usedNames = new Set<string>()
 
-  const conflicts = (exercise: LibraryExercise): boolean =>
-    CAPPED_PATTERNS.has(exercise.movement_pattern) && claimed.has(exercise.movement_pattern)
+  const conflicts = (exercise: LibraryExercise): boolean => {
+    const cap = PATTERN_CAPS[exercise.movement_pattern]
+    if (cap === undefined) return false
+    return (claimedCounts.get(exercise.movement_pattern) ?? 0) >= cap
+  }
 
   const claim = (exercise: LibraryExercise): void => {
-    if (CAPPED_PATTERNS.has(exercise.movement_pattern)) claimed.add(exercise.movement_pattern)
+    if (PATTERN_CAPS[exercise.movement_pattern] !== undefined) {
+      claimedCounts.set(exercise.movement_pattern, (claimedCounts.get(exercise.movement_pattern) ?? 0) + 1)
+    }
     usedNames.add(exercise.name)
   }
 
