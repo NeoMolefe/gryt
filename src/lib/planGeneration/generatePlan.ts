@@ -89,6 +89,18 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
           paceZones,
         })
 
+      const buildWarmUpBlock = (exercise: (typeof selected.warm_up)[number]): ExerciseBlock =>
+        prescribe({
+          exercise,
+          phase: week.phase,
+          weekInPhase: week.weekInPhase,
+          totalWeeksInPhase: week.totalWeeksInPhase,
+          experience,
+          sessionName: template.session_name,
+          paceZones,
+          isWarmUp: true,
+        })
+
       // For marathon/half_marathon, override the Long Run conditioning exercise
       // duration with phase- and week-aware progression.
       let conditioningExercise = selected.conditioning
@@ -119,7 +131,7 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
         week_number: week.week_number,
         day_number: dayIndex + 1,
         estimated_duration_minutes: 0,
-        warm_up: selected.warm_up.map(buildBlock),
+        warm_up: selected.warm_up.map(buildWarmUpBlock),
         main_lifts,
         accessories,
         core_stability,

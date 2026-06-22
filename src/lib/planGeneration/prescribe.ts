@@ -12,6 +12,10 @@ export interface PrescribeInput {
   experience: ExperienceLevel
   sessionName?: string
   paceZones?: PaceZones | null
+  // Warm-up exercises always get exactly 2 sets, regardless of phase or
+  // experience — they're priming the body, not a training stimulus that
+  // should progress with the program.
+  isWarmUp?: boolean
 }
 
 const RPE_RANGES: Record<Phase, [number, number]> = {
@@ -125,10 +129,10 @@ function prescribeRestSeconds(exercise: LibraryExercise, phase: Phase): number {
 }
 
 export function prescribe(input: PrescribeInput): ExerciseBlock {
-  const { exercise, phase, weekInPhase, totalWeeksInPhase, experience, sessionName = '', paceZones } = input
+  const { exercise, phase, weekInPhase, totalWeeksInPhase, experience, sessionName = '', paceZones, isWarmUp } = input
 
   const rpe = interpolateRpe(phase, weekInPhase, totalWeeksInPhase)
-  const sets = prescribeSets(exercise, phase, weekInPhase, experience)
+  const sets = isWarmUp ? 2 : prescribeSets(exercise, phase, weekInPhase, experience)
   const reps = prescribeReps(exercise, phase)
   const rest_seconds = prescribeRestSeconds(exercise, phase)
 
