@@ -2,6 +2,7 @@ import type { Archetype, Equipment, ExerciseBlock, Focus, WorkoutSession } from 
 import type { ExperienceLevel, SecondaryGoal, SessionDuration } from '@/types/onboarding'
 import { EXERCISE_LIBRARY } from './exerciseLibrary'
 import { prescribe } from './prescribe'
+import { findBlueprint } from './sessionBlueprints'
 
 interface SecondaryGoalConfig {
   inject_focuses: Focus[]
@@ -18,7 +19,7 @@ const GOAL_CONFIG_MAP: Record<SecondaryGoal, SecondaryGoalConfig> = {
   lose_body_fat: { inject_focuses: ['conditioning'], inject_count: 2 },
   build_muscle: { inject_focuses: ['upper_push', 'upper_pull', 'lower'], extra_sets: 1, inject_count: 2 },
   improve_body_composition: { inject_focuses: ['conditioning', 'lower'], inject_count: 2 },
-  improve_core_strength: { inject_focuses: ['core'], inject_count: 2 },
+  improve_core_strength: { inject_focuses: ['core'], inject_count: 2 }, // both injections go to core_stability
   improve_posture: { inject_focuses: ['upper_pull', 'core'], inject_count: 2 },
   injury_prevention: { inject_focuses: ['mobility', 'core'], inject_count: 2 },
   improve_balance_coordination: { inject_focuses: ['agility', 'core'], inject_count: 2 },
@@ -72,49 +73,113 @@ function injectSecondaryGoalWork(
   const usedNames = new Set([
     ...session.main_lifts.map((b) => b.name),
     ...session.accessories.map((b) => b.name),
+    ...(session.core_stability ?? []).map((b) => b.name),
   ])
 
-  const candidates = EXERCISE_LIBRARY.filter(
+  const isExperienceEligible = (exercise: { min_experience?: ExperienceLevel }) =>
+    !exercise.min_experience || EXPERIENCE_LEVEL_RANK[experience] >= EXPERIENCE_LEVEL_RANK[exercise.min_experience]
+
+  // Non-core candidates go to accessories (existing behavior).
+  const nonCoreCandidates = EXERCISE_LIBRARY.filter(
     (exercise) =>
       config.inject_focuses.includes(exercise.category) &&
+      exercise.movement_pattern !== 'core' &&
       exercise.equipment.includes(equipment) &&
       exercise.archetypes.includes(archetype) &&
       exercise.phases.includes(session.phase) &&
-      // Core exercises have their own dedicated core_stability section —
-      // never inject one into main_lifts/accessories, even when a secondary
-      // goal (e.g. improve_core_strength) maps to the 'core' focus category.
-      exercise.movement_pattern !== 'core' &&
-      (!exercise.min_experience || EXPERIENCE_LEVEL_RANK[experience] >= EXPERIENCE_LEVEL_RANK[exercise.min_experience]),
+      isExperienceEligible(exercise),
   )
 
-  const injectedBlocks: ExerciseBlock[] = []
-  for (let i = 0; i < injectCount; i++) {
-    const pool = candidates.filter((exercise) => !usedNames.has(exercise.name))
-    if (pool.length === 0) break
-    // Different offset per injected exercise (the `+ i`) so a 2-injection
-    // goal doesn't just pick the same "first in rotation" exercise twice.
-    const offset = session.week_number + session.day_number + i
-    const exercise = pool[offset % pool.length]
+  // Core candidates go to core_stability instead — goals like
+  // improve_core_strength/improve_posture/injury_prevention/
+  // improve_balance_coordination list 'core' in inject_focuses specifically
+  // to land here, not in accessories.
+  const coreCandidates = EXERCISE_LIBRARY.filter(
+    (exercise) =>
+      config.inject_focuses.includes(exercise.category) &&
+      exercise.movement_pattern === 'core' &&
+      exercise.equipment.includes(equipment) &&
+      exercise.archetypes.includes(archetype) &&
+      exercise.phases.includes(session.phase) &&
+      isExperienceEligible(exercise),
+  )
+
+  const accessoryInjected: ExerciseBlock[] = []
+  const coreInjected: ExerciseBlock[] = []
+
+  const buildBlock = (exercise: (typeof nonCoreCandidates)[number]): ExerciseBlock =>
+    prescribe({
+      exercise,
+      phase: session.phase,
+      weekInPhase: session.week_number,
+      totalWeeksInPhase: session.week_number,
+      experience,
+    })
+
+  const pickFrom = (pool: typeof nonCoreCandidates, offsetBase: number) => {
+    const candidates = pool.filter((exercise) => !usedNames.has(exercise.name))
+    if (candidates.length === 0) return null
+    // Different offset per pick (the running `injected` count) so a
+    // multi-injection goal doesn't just pick the same "first in rotation"
+    // exercise twice.
+    const offset = session.week_number + session.day_number + offsetBase
+    return candidates[offset % candidates.length]
+  }
+
+  // Alternate non-core/core by injection slot rather than draining one pool
+  // before the other — a goal like improve_posture (['upper_pull', 'core'])
+  // has plenty of upper_pull candidates, so draining non-core first would
+  // consume the entire injectCount before ever reaching the core pool. For a
+  // single-focus goal (e.g. improve_core_strength: ['core']) the non-core
+  // pool is empty by construction, so every slot falls through to core
+  // regardless of alternation — both still land in core_stability as intended.
+  let injected = 0
+  while (injected < injectCount) {
+    const preferCore = injected % 2 === 1
+    const primary = preferCore ? coreCandidates : nonCoreCandidates
+    const secondary = preferCore ? nonCoreCandidates : coreCandidates
+
+    let exercise = pickFrom(primary, injected)
+    let isCore = preferCore
+    if (!exercise) {
+      exercise = pickFrom(secondary, injected)
+      isCore = !preferCore
+    }
+    if (!exercise) break
+
     usedNames.add(exercise.name)
-    injectedBlocks.push(
-      prescribe({
-        exercise,
-        phase: session.phase,
-        weekInPhase: session.week_number,
-        totalWeeksInPhase: session.week_number,
-        experience,
-      }),
-    )
+    const block = buildBlock(exercise)
+    if (isCore) {
+      coreInjected.push(block)
+    } else {
+      accessoryInjected.push(block)
+    }
+    injected += 1
   }
 
   const main_lifts = config.extra_sets
     ? session.main_lifts.map((block) => ({ ...block, sets: block.sets + config.extra_sets! }))
     : session.main_lifts
 
+  // Blueprint sessions are already complete with 4 main lifts (2 for Push/Pull
+  // Day) — stacking baseline accessories on top of injected secondary goal
+  // work would make the session too long. Cap total accessories at 3,
+  // letting injected goal work replace baseline accessories rather than
+  // stack on top (injected exercises are the ones the user explicitly opted
+  // into via their secondary goal, so they take priority over the generic
+  // baseline picks). Only accessoryInjected counts here — core_stability is a
+  // separate section, not part of this cap.
+  const isBlueprintSession = Boolean(findBlueprint(session.session_name)?.main_lift_slots.length)
+  const accessories =
+    isBlueprintSession && accessoryInjected.length > 0
+      ? [...session.accessories.slice(0, Math.max(0, 3 - accessoryInjected.length)), ...accessoryInjected]
+      : [...session.accessories, ...accessoryInjected]
+
   return {
     ...session,
     main_lifts,
-    accessories: [...session.accessories, ...injectedBlocks],
+    accessories,
+    core_stability: [...(session.core_stability ?? []), ...coreInjected],
   }
 }
 
