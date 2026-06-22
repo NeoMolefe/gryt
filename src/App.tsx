@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -7,23 +7,24 @@ import { useThemeStore } from '@/store/themeStore'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicOnlyRoute } from '@/routes/PublicOnlyRoute'
 import { AppShell } from '@/components/layout/AppShell'
-import { Landing } from '@/pages/Landing'
-import { PrivacyPolicy } from '@/pages/PrivacyPolicy'
-import { TermsOfService } from '@/pages/TermsOfService'
-import { RefundPolicy } from '@/pages/RefundPolicy'
-import { ResetPassword } from '@/pages/ResetPassword'
-import { SignUp } from '@/pages/SignUp'
-import { Login } from '@/pages/Login'
-import { GetStarted } from '@/pages/GetStarted'
-import { Dashboard } from '@/pages/Dashboard'
-import { Onboarding } from '@/pages/Onboarding'
-import { Workouts } from '@/pages/Workouts'
-import { WorkoutSession } from '@/pages/WorkoutSession'
-import { Kwazi } from '@/pages/Kwazi'
-import { Progress } from '@/pages/Progress'
-import { Settings } from '@/pages/Settings'
 import { abandonStaleSession } from '@/lib/session/sessionStorage'
 import { abandonSessionLog } from '@/lib/dashboard/queries'
+
+const Landing = lazy(() => import('@/pages/Landing').then((m) => ({ default: m.Landing })))
+const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy').then((m) => ({ default: m.PrivacyPolicy })))
+const TermsOfService = lazy(() => import('@/pages/TermsOfService').then((m) => ({ default: m.TermsOfService })))
+const RefundPolicy = lazy(() => import('@/pages/RefundPolicy').then((m) => ({ default: m.RefundPolicy })))
+const ResetPassword = lazy(() => import('@/pages/ResetPassword').then((m) => ({ default: m.ResetPassword })))
+const SignUp = lazy(() => import('@/pages/SignUp').then((m) => ({ default: m.SignUp })))
+const Login = lazy(() => import('@/pages/Login').then((m) => ({ default: m.Login })))
+const GetStarted = lazy(() => import('@/pages/GetStarted').then((m) => ({ default: m.GetStarted })))
+const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default: m.Dashboard })))
+const Onboarding = lazy(() => import('@/pages/Onboarding').then((m) => ({ default: m.Onboarding })))
+const Workouts = lazy(() => import('@/pages/Workouts').then((m) => ({ default: m.Workouts })))
+const WorkoutSession = lazy(() => import('@/pages/WorkoutSession').then((m) => ({ default: m.WorkoutSession })))
+const Kwazi = lazy(() => import('@/pages/Kwazi').then((m) => ({ default: m.Kwazi })))
+const Progress = lazy(() => import('@/pages/Progress').then((m) => ({ default: m.Progress })))
+const Settings = lazy(() => import('@/pages/Settings').then((m) => ({ default: m.Settings })))
 
 const queryClient = new QueryClient()
 
@@ -67,103 +68,105 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/refund-policy" element={<RefundPolicy />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route
-            path="/sign-up"
-            element={
-              <PublicOnlyRoute>
-                <SignUp />
-              </PublicOnlyRoute>
-            }
-          />
-          <Route
-            path="/login"
-            element={
-              <PublicOnlyRoute>
-                <Login />
-              </PublicOnlyRoute>
-            }
-          />
-          <Route
-            path="/get-started"
-            element={
-              <ProtectedRoute>
-                <GetStarted />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <AppShell>
-                  <Dashboard />
-                </AppShell>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/workouts"
-            element={
-              <ProtectedRoute>
-                <AppShell>
-                  <Workouts />
-                </AppShell>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/progress"
-            element={
-              <ProtectedRoute>
-                <AppShell>
-                  <Progress />
-                </AppShell>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/kwazi"
-            element={
-              <ProtectedRoute>
-                <AppShell>
-                  <Kwazi />
-                </AppShell>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <AppShell>
-                  <Settings />
-                </AppShell>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/session/:workoutId"
-            element={
-              <ProtectedRoute>
-                <WorkoutSession />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/onboarding"
-            element={
-              <ProtectedRoute>
-                <Onboarding />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+        <Suspense fallback={<div style={{ minHeight: '100svh', background: 'var(--color-bg)' }} />}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/refund-policy" element={<RefundPolicy />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/sign-up"
+              element={
+                <PublicOnlyRoute>
+                  <SignUp />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/login"
+              element={
+                <PublicOnlyRoute>
+                  <Login />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/get-started"
+              element={
+                <ProtectedRoute>
+                  <GetStarted />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Dashboard />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/workouts"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Workouts />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/progress"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Progress />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/kwazi"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Kwazi />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <AppShell>
+                    <Settings />
+                  </AppShell>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/session/:workoutId"
+              element={
+                <ProtectedRoute>
+                  <WorkoutSession />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </QueryClientProvider>
   )
