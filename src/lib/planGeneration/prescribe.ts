@@ -42,7 +42,7 @@ function prescribeSets(exercise: LibraryExercise, phase: Phase, weekInPhase: num
         return Math.max(1, Math.round(exercise.default_sets * 0.6))
     }
   })()
-  if (experience === 'beginner') return Math.max(1, baseSets - 1)
+  if (experience === 'beginner') return Math.max(2, baseSets - 1)
   if (experience === 'advanced') return baseSets + 1
   return baseSets
 }
