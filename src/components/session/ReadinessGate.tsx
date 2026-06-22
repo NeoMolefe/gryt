@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 
 interface RecoveryGateProps {
@@ -17,6 +18,7 @@ interface RestGateProps {
 type ReadinessGateProps = RecoveryGateProps | RestGateProps
 
 export function ReadinessGate(props: ReadinessGateProps) {
+  const navigate = useNavigate()
   const [confirmingTrainAnyway, setConfirmingTrainAnyway] = useState(false)
 
   if (props.mode === 'recovery_substitution') {
@@ -32,6 +34,9 @@ export function ReadinessGate(props: ReadinessGateProps) {
           <Button onClick={onStartRecovery}>Start Recovery Session</Button>
           <Button variant="outline" onClick={onContinueOriginal}>
             Continue with original plan anyway
+          </Button>
+          <Button onClick={() => navigate('/dashboard')} variant="primary">
+            Back to Dashboard
           </Button>
         </div>
       </div>
@@ -51,9 +56,14 @@ export function ReadinessGate(props: ReadinessGateProps) {
       </div>
       <div className="flex w-full max-w-sm flex-col gap-3">
         {!confirmingTrainAnyway ? (
-          <Button variant="outline" onClick={() => setConfirmingTrainAnyway(true)}>
-            I understand — I still want to train
-          </Button>
+          <>
+            <Button onClick={() => navigate('/dashboard')} variant="primary">
+              Back to Dashboard
+            </Button>
+            <Button variant="outline" onClick={() => setConfirmingTrainAnyway(true)}>
+              I understand — I still want to train
+            </Button>
+          </>
         ) : (
           <>
             <p className="text-sm text-text-secondary">Are you sure? This will load your original session.</p>
