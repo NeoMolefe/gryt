@@ -210,7 +210,7 @@ body {
 /* Marketing nav: floating pill, responsive positioning */
 .marketing-nav {
   position: fixed;
-  top: 20px;
+  top: calc(20px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;

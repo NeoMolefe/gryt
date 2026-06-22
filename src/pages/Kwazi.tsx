@@ -401,7 +401,7 @@ export function Kwazi() {
         </div>
       )}
 
-      <div className="border-t border-border px-4 py-3 pb-24">
+      <div className="border-t border-border px-4 py-3 pb-[calc(64px_+_env(safe-area-inset-bottom))]">
         <MessageInput value={inputValue} onChange={setInputValue} onSend={handleSend} disabled={isSending || blocked} />
         {!blocked && remaining <= REMAINING_WARNING_THRESHOLD && (
           <p className="mt-2 text-center text-xs text-text-muted">

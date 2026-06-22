@@ -103,7 +103,7 @@ export function Workouts() {
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-      className="min-h-svh px-6 py-6 pb-24"
+      className="min-h-svh px-6 py-6 pb-[calc(64px_+_env(safe-area-inset-bottom))]"
     >
       <div className="mx-auto max-w-md">
         <h1 className="mb-1 text-2xl font-bold text-text-primary">Your Plan</h1>
