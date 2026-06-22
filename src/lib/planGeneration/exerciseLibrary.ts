@@ -1655,7 +1655,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
   {
     name: 'Inverted Row',
     category: 'upper_pull',
-    equipment: ['full_gym', 'home_gym'],
+    equipment: ['full_gym', 'home_gym', 'bodyweight'],
     archetypes: ALL_ARCHETYPES,
     phases: ALL_PHASES,
     default_sets: 3,
