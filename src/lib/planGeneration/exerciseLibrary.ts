@@ -1873,4 +1873,22 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     conditioning_type: 'steady_state',
     movement_pattern: 'conditioning',
   },
+  {
+    name: 'Doorframe Row',
+    category: 'upper_pull',
+    equipment: ALL_EQUIPMENT,
+    archetypes: ALL_ARCHETYPES,
+    phases: ALL_PHASES,
+    default_sets: 3,
+    default_reps: 10,
+    default_rest_seconds: 60,
+    default_rpe: 7,
+    coaching_cues: [
+      'Stand in doorframe, grip both sides at shoulder height',
+      'Lean back to create tension, pull chest toward the frame',
+      'Adjust lean angle to increase or decrease difficulty',
+    ],
+    is_compound: true,
+    movement_pattern: 'pull_vertical',
+  },
 ]
