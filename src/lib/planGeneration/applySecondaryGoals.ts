@@ -3,6 +3,7 @@ import type { ExperienceLevel, SecondaryGoal, SessionDuration } from '@/types/on
 import { EXERCISE_LIBRARY } from './exerciseLibrary'
 import { prescribe } from './prescribe'
 import { findBlueprint } from './sessionBlueprints'
+import { CONDITIONING_CATEGORIES } from './selectExercises'
 
 interface SecondaryGoalConfig {
   inject_focuses: Focus[]
@@ -79,15 +80,22 @@ function injectSecondaryGoalWork(
   const isExperienceEligible = (exercise: { min_experience?: ExperienceLevel }) =>
     !exercise.min_experience || EXPERIENCE_LEVEL_RANK[experience] >= EXPERIENCE_LEVEL_RANK[exercise.min_experience]
 
-  // Non-core candidates go to accessories (existing behavior).
+  const matchesBaseFilters = (exercise: (typeof EXERCISE_LIBRARY)[number]) =>
+    config.inject_focuses.includes(exercise.category) &&
+    exercise.equipment.includes(equipment) &&
+    exercise.archetypes.includes(archetype) &&
+    exercise.phases.includes(session.phase) &&
+    isExperienceEligible(exercise)
+
+  // Non-core, non-conditioning candidates go to accessories (existing
+  // behavior). Conditioning exercises (e.g. Run Zone 2 40min) must never
+  // land here — they belong in the dedicated conditioning field only.
   const nonCoreCandidates = EXERCISE_LIBRARY.filter(
     (exercise) =>
-      config.inject_focuses.includes(exercise.category) &&
+      matchesBaseFilters(exercise) &&
       exercise.movement_pattern !== 'core' &&
-      exercise.equipment.includes(equipment) &&
-      exercise.archetypes.includes(archetype) &&
-      exercise.phases.includes(session.phase) &&
-      isExperienceEligible(exercise),
+      exercise.movement_pattern !== 'conditioning' &&
+      !CONDITIONING_CATEGORIES.includes(exercise.category),
   )
 
   // Core candidates go to core_stability instead — goals like
@@ -95,17 +103,21 @@ function injectSecondaryGoalWork(
   // improve_balance_coordination list 'core' in inject_focuses specifically
   // to land here, not in accessories.
   const coreCandidates = EXERCISE_LIBRARY.filter(
-    (exercise) =>
-      config.inject_focuses.includes(exercise.category) &&
-      exercise.movement_pattern === 'core' &&
-      exercise.equipment.includes(equipment) &&
-      exercise.archetypes.includes(archetype) &&
-      exercise.phases.includes(session.phase) &&
-      isExperienceEligible(exercise),
+    (exercise) => matchesBaseFilters(exercise) && exercise.movement_pattern === 'core',
   )
+
+  // Conditioning candidates go to the session's single conditioning slot —
+  // goals like improve_cardio_base/lose_body_fat/improve_body_composition/
+  // build_endurance_base/build_mental_toughness/increase_work_capacity list
+  // 'conditioning' in inject_focuses specifically to land here, not in
+  // accessories. Only relevant if the goal targets 'conditioning' at all.
+  const conditioningCandidates = config.inject_focuses.includes('conditioning')
+    ? EXERCISE_LIBRARY.filter((exercise) => matchesBaseFilters(exercise) && CONDITIONING_CATEGORIES.includes(exercise.category))
+    : []
 
   const accessoryInjected: ExerciseBlock[] = []
   const coreInjected: ExerciseBlock[] = []
+  let conditioningInjected: ExerciseBlock | null = null
 
   const buildBlock = (exercise: (typeof nonCoreCandidates)[number]): ExerciseBlock =>
     prescribe({
@@ -126,6 +138,24 @@ function injectSecondaryGoalWork(
     return candidates[offset % candidates.length]
   }
 
+  let injected = 0
+
+  // Conditioning gets first claim on one injection slot, if this goal
+  // targets 'conditioning' and the session doesn't already have one — the
+  // field holds a single exercise, so an already-populated conditioning slot
+  // is left untouched rather than overwritten. Goals whose only focus is
+  // 'conditioning' (e.g. improve_cardio_base, inject_count: 2) will have
+  // leftover slots after this with nowhere left to go — that's expected
+  // graceful degradation, not a bug.
+  if (conditioningCandidates.length > 0 && session.conditioning === null) {
+    const exercise = pickFrom(conditioningCandidates, injected)
+    if (exercise) {
+      usedNames.add(exercise.name)
+      conditioningInjected = buildBlock(exercise)
+      injected += 1
+    }
+  }
+
   // Alternate non-core/core by injection slot rather than draining one pool
   // before the other — a goal like improve_posture (['upper_pull', 'core'])
   // has plenty of upper_pull candidates, so draining non-core first would
@@ -133,7 +163,6 @@ function injectSecondaryGoalWork(
   // single-focus goal (e.g. improve_core_strength: ['core']) the non-core
   // pool is empty by construction, so every slot falls through to core
   // regardless of alternation — both still land in core_stability as intended.
-  let injected = 0
   while (injected < injectCount) {
     const preferCore = injected % 2 === 1
     const primary = preferCore ? coreCandidates : nonCoreCandidates
@@ -180,6 +209,7 @@ function injectSecondaryGoalWork(
     main_lifts,
     accessories,
     core_stability: [...(session.core_stability ?? []), ...coreInjected],
+    conditioning: conditioningInjected ?? session.conditioning,
   }
 }
 

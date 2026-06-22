@@ -24,7 +24,7 @@ export interface SelectedExercises {
   cooldown: LibraryExercise[]
 }
 
-const CONDITIONING_CATEGORIES = ['conditioning', 'vo2max', 'sprint']
+export const CONDITIONING_CATEGORIES = ['conditioning', 'vo2max', 'sprint']
 
 // Supporting strength movements for HYROX Competitor sessions — 3 are picked
 // per day from this pool of 6, chosen because each transfers directly to a
