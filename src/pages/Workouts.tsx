@@ -127,6 +127,7 @@ export function Workouts() {
           expandedDayId={expandedDayId}
           eventBadgeLabel={eventBadgeLabel}
           injuryFlags={profile?.injury_flags}
+          secondaryGoals={profile?.secondary_goals}
           onToggleWeek={(weekNumber) => {
             setExpandedWeek((current) => (current === weekNumber ? null : weekNumber))
             setExpandedDayId(null)

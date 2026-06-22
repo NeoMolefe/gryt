@@ -2,21 +2,30 @@ import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/Button'
 import { PhaseBadge } from '@/components/dashboard/PhaseBadge'
 import { flagsForExercise } from '@/lib/injuries/bodyAreas'
+import { secondaryGoalLabel } from '@/lib/onboarding/options'
 import type { Workout } from '@/types/plan.types'
 import type { InjuryFlag } from '@/types/profile'
+import type { SecondaryGoal } from '@/types/onboarding'
 import { ExerciseBlockRow } from './ExerciseBlockRow'
 
 interface DayCardProps {
   workout: Workout
   eventBadgeLabel: string | null
   injuryFlags?: InjuryFlag[] | null
+  // Secondary goals live on the user's profile, not the plan row — despite
+  // what some internal docs assume, `plans` has no secondary_goals column.
+  secondaryGoals?: SecondaryGoal[] | null
   isExpanded: boolean
   onToggle: () => void
   onStart: () => void
 }
 
-export function DayCard({ workout, eventBadgeLabel, injuryFlags, isExpanded, onToggle, onStart }: DayCardProps) {
+export function DayCard({ workout, eventBadgeLabel, injuryFlags, secondaryGoals, isExpanded, onToggle, onStart }: DayCardProps) {
   const isHyroxSimulation = Boolean(workout.hyrox_simulation?.length)
+  // applySecondaryGoals() never injects goal work into deload weeks or HYROX
+  // simulation days — match that here so the note doesn't claim goal work
+  // happened on a day it didn't.
+  const showSecondaryGoals = workout.phase !== 'deload' && !isHyroxSimulation && secondaryGoals && secondaryGoals.length > 0
 
   return (
     <div className="rounded-2xl border border-border bg-card">
@@ -38,6 +47,11 @@ export function DayCard({ workout, eventBadgeLabel, injuryFlags, isExpanded, onT
               </span>
             )}
           </div>
+          {showSecondaryGoals && (
+            <p className="mt-2 text-xs text-text-secondary">
+              Includes: {secondaryGoals!.map((goal) => secondaryGoalLabel(goal)).join(' · ')}
+            </p>
+          )}
         </div>
         <ChevronDown className={`shrink-0 text-text-secondary transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
       </button>

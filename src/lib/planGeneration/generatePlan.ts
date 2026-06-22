@@ -75,6 +75,7 @@ export function generatePlan(data: OnboardingData): GeneratedPlan {
         dayIndex,
         previousAccessoryNames,
         previousMainLiftNames,
+        experience,
       })
 
       const buildBlock = (exercise: (typeof selected.main_lifts)[number]): ExerciseBlock =>

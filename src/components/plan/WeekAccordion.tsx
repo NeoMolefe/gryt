@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react'
 import type { Workout } from '@/types/plan.types'
 import type { InjuryFlag } from '@/types/profile'
+import type { SecondaryGoal } from '@/types/onboarding'
 import { DayCard } from './DayCard'
 
 export interface WeekGroup {
@@ -14,6 +15,7 @@ interface WeekAccordionProps {
   expandedDayId: string | null
   eventBadgeLabel: string | null
   injuryFlags?: InjuryFlag[] | null
+  secondaryGoals?: SecondaryGoal[] | null
   onToggleWeek: (weekNumber: number) => void
   onToggleDay: (workoutId: string) => void
   onStart: (workout: Workout) => void
@@ -25,6 +27,7 @@ export function WeekAccordion({
   expandedDayId,
   eventBadgeLabel,
   injuryFlags,
+  secondaryGoals,
   onToggleWeek,
   onToggleDay,
   onStart,
@@ -53,6 +56,7 @@ export function WeekAccordion({
                     workout={workout}
                     eventBadgeLabel={eventBadgeLabel}
                     injuryFlags={injuryFlags}
+                    secondaryGoals={secondaryGoals}
                     isExpanded={expandedDayId === workout.id}
                     onToggle={() => onToggleDay(workout.id)}
                     onStart={() => onStart(workout)}

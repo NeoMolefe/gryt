@@ -1,3 +1,4 @@
+import type { ExperienceLevel } from '@/types/onboarding'
 import type { Archetype, Equipment, Focus, Phase } from '@/types/plan.types'
 import { EXERCISE_LIBRARY, type LibraryExercise, type MovementPattern } from './exerciseLibrary'
 import type { SessionTemplate } from './selectSplit'
@@ -10,6 +11,7 @@ export interface SelectExercisesInput {
   dayIndex: number
   previousAccessoryNames: string[]
   previousMainLiftNames: string[]
+  experience: ExperienceLevel
 }
 
 export interface SelectedExercises {
@@ -53,7 +55,22 @@ function rotate<T>(arr: T[], offset: number): T[] {
   return [...arr.slice(o), ...arr.slice(0, o)]
 }
 
-function isAvailable(exercise: LibraryExercise, equipment: Equipment, archetype: Archetype, phase: Phase): boolean {
+const EXPERIENCE_LEVEL_RANK: Record<ExperienceLevel, number> = {
+  beginner: 0,
+  intermediate: 1,
+  advanced: 2,
+}
+
+function isAvailable(
+  exercise: LibraryExercise,
+  equipment: Equipment,
+  archetype: Archetype,
+  phase: Phase,
+  experience: ExperienceLevel,
+): boolean {
+  if (exercise.min_experience && EXPERIENCE_LEVEL_RANK[experience] < EXPERIENCE_LEVEL_RANK[exercise.min_experience]) {
+    return false
+  }
   return (
     exercise.equipment.includes(equipment) &&
     exercise.archetypes.includes(archetype) &&
@@ -188,10 +205,10 @@ function enforceMovementPatternLimits(
 // and traditional main_lifts are limited to a handful of supporting lifts
 // that directly transfer to those stations.
 function selectHyroxExercises(input: SelectExercisesInput): SelectedExercises {
-  const { template, equipment, phase, dayIndex, previousAccessoryNames, previousMainLiftNames } = input
+  const { template, equipment, phase, dayIndex, previousAccessoryNames, previousMainLiftNames, experience } = input
   const archetype: Archetype = 'HYROX Competitor'
 
-  const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase))
+  const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase, experience))
 
   const mobilityPool = available.filter((exercise) => exercise.category === 'mobility')
   const warm_up = rotate(mobilityPool, dayIndex).slice(0, 3)
@@ -262,9 +279,9 @@ export function selectExercises(input: SelectExercisesInput): SelectedExercises 
     return selectHyroxExercises(input)
   }
 
-  const { template, archetype, equipment, phase, dayIndex, previousAccessoryNames, previousMainLiftNames } = input
+  const { template, archetype, equipment, phase, dayIndex, previousAccessoryNames, previousMainLiftNames, experience } = input
 
-  const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase))
+  const available = EXERCISE_LIBRARY.filter((exercise) => isAvailable(exercise, equipment, archetype, phase, experience))
 
   const mobilityPool = available.filter((exercise) => exercise.category === 'mobility')
   const rotatedMobility = rotate(mobilityPool, dayIndex)

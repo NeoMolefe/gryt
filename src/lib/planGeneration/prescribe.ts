@@ -29,17 +29,22 @@ function interpolateRpe(phase: Phase, weekInPhase: number, totalWeeksInPhase: nu
   return Math.round(raw * 2) / 2
 }
 
-function prescribeSets(exercise: LibraryExercise, phase: Phase, weekInPhase: number): number {
-  switch (phase) {
-    case 'foundation':
-      return Math.max(2, exercise.default_sets - 1)
-    case 'build':
-      return Math.min(exercise.default_sets + 2, exercise.default_sets + Math.floor((weekInPhase - 1) / 2))
-    case 'peak':
-      return exercise.default_sets
-    case 'deload':
-      return Math.max(1, Math.round(exercise.default_sets * 0.6))
-  }
+function prescribeSets(exercise: LibraryExercise, phase: Phase, weekInPhase: number, experience: ExperienceLevel): number {
+  const baseSets = (() => {
+    switch (phase) {
+      case 'foundation':
+        return Math.max(2, exercise.default_sets - 1)
+      case 'build':
+        return Math.min(exercise.default_sets + 2, exercise.default_sets + Math.floor((weekInPhase - 1) / 2))
+      case 'peak':
+        return exercise.default_sets
+      case 'deload':
+        return Math.max(1, Math.round(exercise.default_sets * 0.6))
+    }
+  })()
+  if (experience === 'beginner') return Math.max(1, baseSets - 1)
+  if (experience === 'advanced') return baseSets + 1
+  return baseSets
 }
 
 function prescribeReps(exercise: LibraryExercise, phase: Phase): number | string {
@@ -123,7 +128,7 @@ export function prescribe(input: PrescribeInput): ExerciseBlock {
   const { exercise, phase, weekInPhase, totalWeeksInPhase, experience, sessionName = '', paceZones } = input
 
   const rpe = interpolateRpe(phase, weekInPhase, totalWeeksInPhase)
-  const sets = prescribeSets(exercise, phase, weekInPhase)
+  const sets = prescribeSets(exercise, phase, weekInPhase, experience)
   const reps = prescribeReps(exercise, phase)
   const rest_seconds = prescribeRestSeconds(exercise, phase)
 

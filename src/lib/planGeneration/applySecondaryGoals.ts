@@ -3,23 +3,35 @@ import type { ExperienceLevel, SecondaryGoal, SessionDuration } from '@/types/on
 import { EXERCISE_LIBRARY } from './exerciseLibrary'
 import { prescribe } from './prescribe'
 
-const GOAL_FOCUS_MAP: Record<SecondaryGoal, Focus[]> = {
-  improve_athleticism: ['agility', 'plyometric'],
-  increase_explosiveness: ['power', 'plyometric'],
-  improve_mobility_flexibility: ['mobility'],
-  build_mental_toughness: ['conditioning'],
-  improve_cardio_base: ['conditioning'],
-  lose_body_fat: ['conditioning'],
-  build_muscle: ['upper_push', 'upper_pull', 'lower'],
-  improve_body_composition: ['conditioning'],
-  improve_core_strength: ['core'],
-  improve_posture: ['upper_pull', 'core'],
-  injury_prevention: ['mobility', 'core'],
-  improve_balance_coordination: ['agility', 'core'],
-  increase_work_capacity: ['conditioning'],
-  improve_recovery: ['mobility'],
-  build_endurance_base: ['conditioning'],
-  increase_raw_strength: ['upper_push', 'upper_pull', 'lower'],
+interface SecondaryGoalConfig {
+  inject_focuses: Focus[]
+  extra_sets?: number
+  inject_count?: number
+}
+
+const GOAL_CONFIG_MAP: Record<SecondaryGoal, SecondaryGoalConfig> = {
+  improve_athleticism: { inject_focuses: ['agility', 'plyometric'], inject_count: 2 },
+  increase_explosiveness: { inject_focuses: ['power', 'plyometric'], inject_count: 2 },
+  improve_mobility_flexibility: { inject_focuses: ['mobility'], inject_count: 1 },
+  build_mental_toughness: { inject_focuses: ['conditioning'], extra_sets: 1, inject_count: 1 },
+  improve_cardio_base: { inject_focuses: ['conditioning'], inject_count: 2 },
+  lose_body_fat: { inject_focuses: ['conditioning'], inject_count: 2 },
+  build_muscle: { inject_focuses: ['upper_push', 'upper_pull', 'lower'], extra_sets: 1, inject_count: 2 },
+  improve_body_composition: { inject_focuses: ['conditioning', 'lower'], inject_count: 2 },
+  improve_core_strength: { inject_focuses: ['core'], inject_count: 2 },
+  improve_posture: { inject_focuses: ['upper_pull', 'core'], inject_count: 2 },
+  injury_prevention: { inject_focuses: ['mobility', 'core'], inject_count: 2 },
+  improve_balance_coordination: { inject_focuses: ['agility', 'core'], inject_count: 2 },
+  increase_work_capacity: { inject_focuses: ['conditioning'], extra_sets: 1, inject_count: 1 },
+  improve_recovery: { inject_focuses: ['mobility'], inject_count: 2 },
+  build_endurance_base: { inject_focuses: ['conditioning'], inject_count: 2 },
+  increase_raw_strength: { inject_focuses: ['lower', 'upper_push', 'upper_pull'], extra_sets: 1, inject_count: 1 },
+}
+
+const EXPERIENCE_LEVEL_RANK: Record<ExperienceLevel, number> = {
+  beginner: 0,
+  intermediate: 1,
+  advanced: 2,
 }
 
 const DURATION_THRESHOLDS: Record<SessionDuration, number> = {
@@ -47,22 +59,24 @@ export function estimateSessionDuration(session: WorkoutSession): number {
   return Math.round(total)
 }
 
-function injectExtraAccessory(
+function injectSecondaryGoalWork(
   session: WorkoutSession,
   goal: SecondaryGoal,
   equipment: Equipment,
   archetype: Archetype,
   experience: ExperienceLevel,
 ): WorkoutSession {
-  const focuses = GOAL_FOCUS_MAP[goal]
-  const existingNames = new Set([
+  const config = GOAL_CONFIG_MAP[goal]
+  const injectCount = config.inject_count ?? 1
+
+  const usedNames = new Set([
     ...session.main_lifts.map((b) => b.name),
     ...session.accessories.map((b) => b.name),
   ])
 
   const candidates = EXERCISE_LIBRARY.filter(
     (exercise) =>
-      focuses.includes(exercise.category) &&
+      config.inject_focuses.includes(exercise.category) &&
       exercise.equipment.includes(equipment) &&
       exercise.archetypes.includes(archetype) &&
       exercise.phases.includes(session.phase) &&
@@ -70,23 +84,37 @@ function injectExtraAccessory(
       // never inject one into main_lifts/accessories, even when a secondary
       // goal (e.g. improve_core_strength) maps to the 'core' focus category.
       exercise.movement_pattern !== 'core' &&
-      !existingNames.has(exercise.name),
+      (!exercise.min_experience || EXPERIENCE_LEVEL_RANK[experience] >= EXPERIENCE_LEVEL_RANK[exercise.min_experience]),
   )
 
-  if (candidates.length === 0) return session
+  const injectedBlocks: ExerciseBlock[] = []
+  for (let i = 0; i < injectCount; i++) {
+    const pool = candidates.filter((exercise) => !usedNames.has(exercise.name))
+    if (pool.length === 0) break
+    // Different offset per injected exercise (the `+ i`) so a 2-injection
+    // goal doesn't just pick the same "first in rotation" exercise twice.
+    const offset = session.week_number + session.day_number + i
+    const exercise = pool[offset % pool.length]
+    usedNames.add(exercise.name)
+    injectedBlocks.push(
+      prescribe({
+        exercise,
+        phase: session.phase,
+        weekInPhase: session.week_number,
+        totalWeeksInPhase: session.week_number,
+        experience,
+      }),
+    )
+  }
 
-  const exercise = candidates[(session.week_number + session.day_number) % candidates.length]
-  const extraBlock = prescribe({
-    exercise,
-    phase: session.phase,
-    weekInPhase: session.week_number,
-    totalWeeksInPhase: session.week_number,
-    experience,
-  })
+  const main_lifts = config.extra_sets
+    ? session.main_lifts.map((block) => ({ ...block, sets: block.sets + config.extra_sets! }))
+    : session.main_lifts
 
   return {
     ...session,
-    accessories: [...session.accessories, extraBlock],
+    main_lifts,
+    accessories: [...session.accessories, ...injectedBlocks],
   }
 }
 
@@ -130,7 +158,7 @@ export function applySecondaryGoals(
       // extra accessory work onto it just because a secondary goal is due.
       if (session.hyrox_simulation) return session
       const goal = secondaryGoals[index % secondaryGoals.length]
-      return injectExtraAccessory(session, goal, equipment, archetype, experience)
+      return injectSecondaryGoalWork(session, goal, equipment, archetype, experience)
     })
   }
 
