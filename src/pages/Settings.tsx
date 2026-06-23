@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronRight, LogOut, Mail, RotateCw, ShieldAlert } from 'lucide-react'
 import { InstagramIcon } from '@/components/icons/InstagramIcon'
+import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore, type ThemeMode } from '@/store/themeStore'
 import { InjuryUpdateModal } from '@/components/settings/InjuryUpdateModal'
+import { RegenerateLimitModal } from '@/components/settings/RegenerateLimitModal'
 import { RegeneratePlanModal } from '@/components/settings/RegeneratePlanModal'
 import { SettingsToggle } from '@/components/settings/SettingsToggle'
 import { prefillFromProfile } from '@/lib/onboarding/prefill'
@@ -15,7 +17,13 @@ import {
   PREFERENCE_KEY_ORDER,
   setNotificationPreferences,
 } from '@/lib/notifications/preferences'
-import { deactivateActivePlans, updateInjuryProfile } from '@/lib/settings/queries'
+import {
+  currentRegenerateMonth,
+  deactivateActivePlans,
+  fetchRegenerateRemaining,
+  MONTHLY_REGENERATE_LIMIT,
+  updateInjuryProfile,
+} from '@/lib/settings/queries'
 import type { InjuryFlag } from '@/types/profile'
 
 const INSTAGRAM_URL = 'https://www.instagram.com/gryt.app'
@@ -44,6 +52,8 @@ export function Settings() {
 
   const [isRegenerateOpen, setIsRegenerateOpen] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [isRegenerateLimitReached, setIsRegenerateLimitReached] = useState(false)
+  const [regenerateRemaining, setRegenerateRemaining] = useState<number | null>(null)
   const [isInjuryOpen, setIsInjuryOpen] = useState(false)
   const [isSavingInjury, setIsSavingInjury] = useState(false)
 
@@ -51,6 +61,11 @@ export function Settings() {
   const setThemeMode = useThemeStore((s) => s.setMode)
 
   const [prefs, setPrefs] = useState(() => (userId ? getNotificationPreferences(userId) : null))
+
+  useEffect(() => {
+    if (!userId) return
+    void fetchRegenerateRemaining(userId).then(setRegenerateRemaining)
+  }, [userId])
 
   function handleTogglePreference(key: (typeof PREFERENCE_KEY_ORDER)[number], value: boolean) {
     if (!userId || !prefs) return
@@ -61,9 +76,36 @@ export function Settings() {
 
   async function handleConfirmRegenerate() {
     if (!userId || !profile) return
+
+    const currentMonth = currentRegenerateMonth()
+    const { data: usageData } = await supabase
+      .from('regenerate_usage')
+      .select('count')
+      .eq('user_id', userId)
+      .eq('month', currentMonth)
+      .maybeSingle()
+
+    const currentCount = usageData?.count ?? 0
+
+    if (currentCount >= MONTHLY_REGENERATE_LIMIT) {
+      setIsRegenerateLimitReached(true)
+      setIsRegenerateOpen(false)
+      return
+    }
+
     setIsRegenerating(true)
     try {
+      // deactivateActivePlans is the actual point of commitment here — the
+      // new plan itself is created later, in Onboarding.tsx's own submit
+      // flow, once the user finishes re-running onboarding. Spending the
+      // regeneration credit at this step (not at that later submit) matches
+      // product intent: once their active plan is deactivated, they've used
+      // this month's attempt regardless of whether they complete onboarding.
       await deactivateActivePlans(userId)
+      await supabase
+        .from('regenerate_usage')
+        .upsert({ user_id: userId, month: currentMonth, count: currentCount + 1 }, { onConflict: 'user_id,month' })
+      setRegenerateRemaining(Math.max(0, MONTHLY_REGENERATE_LIMIT - (currentCount + 1)))
       navigate('/onboarding', { state: { prefill: prefillFromProfile(profile), isRegeneration: true } })
     } finally {
       setIsRegenerating(false)
@@ -111,7 +153,18 @@ export function Settings() {
                 <RotateCw size={18} className="text-text-secondary" />
                 Regenerate Plan
               </span>
-              <ChevronRight size={18} className="text-text-secondary" />
+              <span className="flex items-center gap-2">
+                {regenerateRemaining !== null && (
+                  <span
+                    className={`text-xs ${
+                      regenerateRemaining <= 0 ? 'text-brand-orange' : 'text-text-secondary'
+                    }`}
+                  >
+                    {regenerateRemaining} of {MONTHLY_REGENERATE_LIMIT} remaining
+                  </span>
+                )}
+                <ChevronRight size={18} className="text-text-secondary" />
+              </span>
             </button>
 
             <button
@@ -216,6 +269,11 @@ export function Settings() {
         isRegenerating={isRegenerating}
         onConfirm={() => void handleConfirmRegenerate()}
         onCancel={() => setIsRegenerateOpen(false)}
+      />
+
+      <RegenerateLimitModal
+        isOpen={isRegenerateLimitReached}
+        onClose={() => setIsRegenerateLimitReached(false)}
       />
 
       <InjuryUpdateModal
