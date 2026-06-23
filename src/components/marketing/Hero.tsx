@@ -90,7 +90,14 @@ export function Hero() {
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
-        padding: '120px 20px 60px',
+        // Top padding must clear both the Dynamic Island/notch safe area
+        // and the fixed MarketingNav pill above it (~80px = nav height +
+        // breathing room) — a flat px value would let the nav and hero text
+        // overlap the Dynamic Island on notched iPhones.
+        paddingTop: 'calc(env(safe-area-inset-top) + 80px)',
+        paddingRight: 20,
+        paddingBottom: 60,
+        paddingLeft: 20,
         background: 'radial-gradient(ellipse at center top, var(--color-elevated) 0%, var(--color-bg) 60%)',
       }}
     >
