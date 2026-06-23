@@ -48,9 +48,9 @@ export function Landing() {
       <MarketingNav />
       <Hero />
       <Features />
+      <PricingCard />
       <HowItWorks />
       <Methodology />
-      <PricingCard />
       <FAQ />
       <MarketingFooter />
     </div>

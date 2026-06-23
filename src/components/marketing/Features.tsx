@@ -18,36 +18,36 @@ interface Feature {
 const FEATURES: Feature[] = [
   {
     icon: ListChecks,
-    title: 'Structured Programmes',
+    title: 'A programme built around you',
     description:
       '8–12 week adaptive plans built around your goal, equipment, and schedule.',
   },
   {
     icon: Bot,
-    title: 'Kwazi, Your AI Coach',
+    title: 'A coach that knows your history',
     description:
       'An intelligent training coach that knows your plan, your history, and your goals.',
   },
   {
     icon: Activity,
-    title: 'Real-Time RPE Adaptation',
+    title: "Sessions that adapt when life doesn't",
     description:
       'Your sessions adjust based on how each set actually felt — not a fixed script.',
   },
   {
     icon: Trophy,
-    title: 'Personal Best Detection',
+    title: 'Every personal best, captured',
     description: 'Every PB is tracked and celebrated the moment it happens.',
   },
   {
     icon: TrendingUp,
-    title: 'Phase-Based Progression',
+    title: 'Training that builds week on week',
     description:
       'Foundation, Build, and Peak phases sequence your training so gains compound.',
   },
   {
     icon: HeartPulse,
-    title: 'Recovery & Deload Intelligence',
+    title: 'Knows when to push, knows when to rest',
     description:
       'Readiness tracking that knows when to push and when to back off.',
   },
@@ -98,7 +98,7 @@ export function Features() {
             margin: '0 0 56px',
           }}
         >
-          Train smarter with adaptive features.
+          Everything you need to train like an athlete.
         </motion.h2>
 
         {/* 2-column card grid */}

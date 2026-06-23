@@ -127,7 +127,7 @@ export function Hero() {
                 color: 'var(--color-text-secondary)',
               }}
             >
-              Built for the ones who show up.
+              Built for athletes who train with purpose.
             </span>
           </motion.div>
 
@@ -160,7 +160,7 @@ export function Hero() {
               maxWidth: 480,
             }}
           >
-            Your programme. Your pace.
+            Personalised training for HYROX, marathon, triathlon — and every athlete in between.
           </motion.p>
 
           <motion.div
