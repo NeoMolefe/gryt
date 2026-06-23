@@ -50,6 +50,7 @@ export function Dashboard() {
     plan,
     streak,
     todaysWorkout,
+    isTodayWorkoutCompleted,
     weekSchedule,
     isRestDay,
     mobilityRoutine,
@@ -184,7 +185,11 @@ export function Dashboard() {
                 onStart={() => {}}
               />
             ) : (
-              <WorkoutCard workout={todaysWorkout!} onStart={() => navigate(`/session/${todaysWorkout!.id}`)} />
+              <WorkoutCard
+                workout={todaysWorkout!}
+                onStart={() => navigate(`/session/${todaysWorkout!.id}`)}
+                isCompleted={isTodayWorkoutCompleted}
+              />
             )}
           </div>
         ) : null}

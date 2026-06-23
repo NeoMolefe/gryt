@@ -7,6 +7,7 @@ import {
   fetchActivePlan,
   fetchActiveSessionLog,
   fetchRecentCheckins,
+  fetchTodayCompletedSessionLog,
   fetchWorkouts,
   submitCheckin,
 } from '@/lib/dashboard/queries'
@@ -85,6 +86,15 @@ export function useDashboardData() {
     queryFn: () => fetchActiveSessionLog(userId!),
     enabled: !!userId,
   })
+
+  const todaySessionLogQuery = useQuery({
+    queryKey: ['today-completed-session-log', userId],
+    queryFn: () => fetchTodayCompletedSessionLog(userId!),
+    enabled: !!userId,
+  })
+
+  const todaySessionLog = todaySessionLogQuery.data ?? null
+  const isTodayWorkoutCompleted = !!todaySessionLog
 
   const workouts = workoutsQuery.data ?? []
   const checkins = useMemo(() => checkinsQuery.data ?? [], [checkinsQuery.data])
@@ -255,6 +265,8 @@ export function useDashboardData() {
     deloadAlert,
     weekNumber,
     todaysWorkout,
+    isTodayWorkoutCompleted,
+    todaySessionLog,
     weekSchedule,
     isRestDay,
     mobilityRoutine,

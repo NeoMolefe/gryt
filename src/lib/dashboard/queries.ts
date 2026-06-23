@@ -48,6 +48,27 @@ export async function fetchRecentCheckins(userId: string, limit = 10): Promise<R
   return (data ?? []) as ReadinessCheckin[]
 }
 
+/** Fetches today's completed session log, if the user has already finished a workout today. */
+export async function fetchTodayCompletedSessionLog(userId: string): Promise<SessionLog | null> {
+  const today = formatDateISO(new Date())
+
+  const { data, error } = await supabase
+    .from('session_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .gte('started_at', `${today}T00:00:00`)
+    .lte('started_at', `${today}T23:59:59`)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Failed to fetch today\'s completed session log:', error.message)
+    return null
+  }
+
+  return data as SessionLog | null
+}
+
 export async function fetchActiveSessionLog(userId: string): Promise<SessionLog | null> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 

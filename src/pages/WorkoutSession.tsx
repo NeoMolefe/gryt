@@ -15,7 +15,7 @@ import { HyroxSimulationFlow } from '@/components/workout/HyroxSimulationFlow'
 import { useAuthStore } from '@/store/authStore'
 import { useWorkoutSession } from '@/hooks/useWorkoutSession'
 import { adaptSessionForReadiness } from '@/lib/dashboard/adaptSession'
-import { fetchActivePlan, fetchRecentCheckins } from '@/lib/dashboard/queries'
+import { fetchActivePlan, fetchRecentCheckins, fetchTodayCompletedSessionLog } from '@/lib/dashboard/queries'
 import { calculateStreak } from '@/lib/dashboard/streak'
 import { isLegExercise } from '@/lib/session/fatigueTax'
 import { parseDurationSeconds } from '@/lib/session/flattenExercises'
@@ -63,6 +63,22 @@ export function WorkoutSession() {
     enabled: !!workoutId,
   })
   const rawWorkout = rawWorkoutQuery.data ?? null
+
+  // Lightweight, separate from useDashboardData (which carries plan/badges/
+  // mobility-routine state this page doesn't need) — just enough to redirect
+  // away if the user navigates directly to a workout they've already
+  // completed today, rather than letting them start it again.
+  const todaySessionLogQuery = useQuery({
+    queryKey: ['today-completed-session-log', userId],
+    queryFn: () => fetchTodayCompletedSessionLog(userId!),
+    enabled: !!userId,
+  })
+
+  useEffect(() => {
+    if (todaySessionLogQuery.data?.workout_id === workoutId) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [todaySessionLogQuery.data, workoutId, navigate])
 
   const todayReadinessScore = useMemo(() => {
     const todayIso = new Date().toISOString().slice(0, 10)

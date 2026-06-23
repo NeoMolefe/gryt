@@ -5,9 +5,10 @@ import { PhaseBadge } from './PhaseBadge'
 interface WorkoutCardProps {
   workout: Workout
   onStart: () => void
+  isCompleted?: boolean
 }
 
-export function WorkoutCard({ workout, onStart }: WorkoutCardProps) {
+export function WorkoutCard({ workout, onStart, isCompleted = false }: WorkoutCardProps) {
   const exerciseCount =
     workout.main_lifts.length + workout.accessories.length + (workout.conditioning ? 1 : 0)
 
@@ -22,7 +23,13 @@ export function WorkoutCard({ workout, onStart }: WorkoutCardProps) {
         {exerciseCount} exercises &middot; ~{workout.estimated_duration_minutes} min
       </p>
 
-      <Button onClick={onStart}>Start Workout</Button>
+      {isCompleted ? (
+        <div className="flex items-center justify-center gap-2 rounded-xl bg-elevated p-3.5 text-[15px] font-medium text-text-secondary">
+          ✓ Session complete
+        </div>
+      ) : (
+        <Button onClick={onStart}>Start Workout</Button>
+      )}
     </div>
   )
 }
