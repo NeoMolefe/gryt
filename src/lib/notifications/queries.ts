@@ -59,6 +59,28 @@ export async function createNotification(
   })
 
   if (error) console.error('Failed to create notification:', error.message)
+
+  // Fire-and-forget: a push failure (no subscription, permission denied,
+  // network error) must never block in-app notification creation, which has
+  // already succeeded by this point regardless of what happens below.
+  try {
+    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        title,
+        body,
+        url: '/dashboard',
+        tag: type,
+      }),
+    })
+  } catch {
+    // ignore — see comment above
+  }
 }
 
 /** Creates a notification only if the user has the relevant preference toggle enabled. */

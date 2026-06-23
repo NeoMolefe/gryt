@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gryt-cache-v4'
+const CACHE_NAME = 'gryt-cache-v5'
 const PRECACHE_URLS = ['/manifest.json', '/favicon.svg']
 
 self.addEventListener('install', (event) => {
@@ -52,5 +52,46 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => cached)
     }),
+  )
+})
+
+// ── Push notification handler ──────────────────────────────────────
+self.addEventListener('push', (event) => {
+  if (!event.data) return
+
+  let payload
+  try {
+    payload = event.data.json()
+  } catch {
+    payload = { title: 'GRYT', body: event.data.text() }
+  }
+
+  const options = {
+    body: payload.body ?? '',
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    tag: payload.tag ?? 'gryt-notification',
+    data: { url: payload.url ?? '/dashboard' },
+    requireInteraction: false,
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title ?? 'GRYT', options)
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = event.notification.data?.url ?? '/dashboard'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url)
+          return client.focus()
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(url)
+    })
   )
 })

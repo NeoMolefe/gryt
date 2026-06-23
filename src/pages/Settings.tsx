@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ChevronRight, LogOut, Mail, RotateCw, ShieldAlert } from 'lucide-react'
@@ -17,6 +17,7 @@ import {
   PREFERENCE_KEY_ORDER,
   setNotificationPreferences,
 } from '@/lib/notifications/preferences'
+import { isPushSubscribed, subscribeToPush, unsubscribeFromPush } from '@/lib/notifications/pushSubscription'
 import {
   currentRegenerateMonth,
   deactivateActivePlans,
@@ -28,6 +29,10 @@ import type { InjuryFlag } from '@/types/profile'
 
 const INSTAGRAM_URL = 'https://www.instagram.com/gryt.app'
 const CONTACT_EMAIL = 'info@gryt.co.za'
+
+function getNotificationPermission(): NotificationPermission | 'default' {
+  return typeof Notification === 'undefined' ? 'default' : Notification.permission
+}
 
 function buildInjuryMessage(injuryHistory: string, flags: InjuryFlag[]): string {
   if (flags.length === 0) {
@@ -56,6 +61,7 @@ export function Settings() {
   const [regenerateRemaining, setRegenerateRemaining] = useState<number | null>(null)
   const [isInjuryOpen, setIsInjuryOpen] = useState(false)
   const [isSavingInjury, setIsSavingInjury] = useState(false)
+  const [isPushEnabled, setIsPushEnabled] = useState(false)
 
   const themeMode = useThemeStore((s) => s.mode)
   const setThemeMode = useThemeStore((s) => s.setMode)
@@ -66,6 +72,21 @@ export function Settings() {
     if (!userId) return
     void fetchRegenerateRemaining(userId).then(setRegenerateRemaining)
   }, [userId])
+
+  useEffect(() => {
+    void isPushSubscribed().then(setIsPushEnabled)
+  }, [])
+
+  async function handlePushToggle(value: boolean) {
+    if (!userId) return
+    if (value) {
+      const subscribed = await subscribeToPush(userId)
+      setIsPushEnabled(subscribed)
+    } else {
+      await unsubscribeFromPush()
+      setIsPushEnabled(false)
+    }
+  }
 
   function handleTogglePreference(key: (typeof PREFERENCE_KEY_ORDER)[number], value: boolean) {
     if (!userId || !prefs) return
@@ -225,12 +246,29 @@ export function Settings() {
           <div className="space-y-2">
             {prefs &&
               PREFERENCE_KEY_ORDER.map((key) => (
-                <SettingsToggle
-                  key={key}
-                  label={NOTIFICATION_PREFERENCE_LABELS[key]}
-                  checked={prefs[key]}
-                  onChange={(value) => handleTogglePreference(key, value)}
-                />
+                <Fragment key={key}>
+                  <SettingsToggle
+                    label={NOTIFICATION_PREFERENCE_LABELS[key]}
+                    checked={prefs[key]}
+                    onChange={(value) => handleTogglePreference(key, value)}
+                  />
+                  {key === 'daily_workout_reminder' && (
+                    <>
+                      <SettingsToggle
+                        label="Push Notifications"
+                        description="Workout reminders and milestone alerts"
+                        checked={isPushEnabled}
+                        onChange={(value) => void handlePushToggle(value)}
+                        disabled={getNotificationPermission() === 'denied'}
+                      />
+                      {getNotificationPermission() === 'denied' && (
+                        <p className="px-1 text-xs text-text-muted">
+                          Notifications blocked. Enable in your phone&apos;s Settings → Safari → GRYT.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </Fragment>
               ))}
           </div>
         </section>
