@@ -457,6 +457,12 @@ export function WorkoutSession() {
           {isWork && state.timerRemainingSeconds === 0 && (
             <span className="text-lg font-semibold text-text-primary">Ready</span>
           )}
+          {isRest && (
+            <span className="text-2xl font-bold tabular-nums text-text-primary">
+              {Math.floor(state.timerRemainingSeconds / 60).toString().padStart(2, '0')}:
+              {(state.timerRemainingSeconds % 60).toString().padStart(2, '0')}
+            </span>
+          )}
         </TimerRing>
 
         <div className="flex w-full max-w-sm flex-col gap-2">

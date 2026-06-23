@@ -31,6 +31,37 @@ function workTimerFor(exercise: FlatExercise | undefined): { remaining: number; 
   return { remaining: duration ?? 0, running: false }
 }
 
+// The rest timer's setInterval tick stops while iOS Safari suspends JS (phone
+// locked, app backgrounded), freezing timerRemainingSeconds at a stale value.
+// Storing the absolute end timestamp lets us recompute the true remaining
+// time from wall-clock time whenever we get a chance to run again, instead
+// of trusting an interval that may have missed ticks.
+function restEndKey(workoutId: string): string {
+  return `gryt_rest_end_${workoutId}`
+}
+
+function setRestEndTime(workoutId: string, restSeconds: number): void {
+  try {
+    localStorage.setItem(restEndKey(workoutId), String(Date.now() + restSeconds * 1000))
+  } catch {
+    // ignore storage failures (e.g. private browsing, quota exceeded)
+  }
+}
+
+function clearRestEndTime(workoutId: string): void {
+  try {
+    localStorage.removeItem(restEndKey(workoutId))
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function readRestRemainingSeconds(workoutId: string, fallback: number): number {
+  const stored = Number(localStorage.getItem(restEndKey(workoutId)) ?? 0)
+  if (!stored) return fallback
+  return Math.max(0, Math.round((stored - Date.now()) / 1000))
+}
+
 function createFreshState(
   userId: string,
   workoutId: string,
@@ -313,7 +344,10 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
     const interval = setInterval(() => {
       setState((prev) => {
         if (!prev) return prev
-        const remaining = prev.timerRemainingSeconds - 1
+        const remaining =
+          prev.timerType === 'rest'
+            ? readRestRemainingSeconds(workoutId, Math.max(0, prev.timerRemainingSeconds - 1))
+            : prev.timerRemainingSeconds - 1
 
         if (remaining > 0) {
           const next = { ...prev, timerRemainingSeconds: remaining }
@@ -327,6 +361,7 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
         pulseVibration()
 
         if (prev.timerType === 'rest') {
+          clearRestEndTime(workoutId)
           const fe = flatExercises[prev.currentExerciseIndex]
           const currentEffectiveSets = fe
             ? (prev.completedSets.find((s) => s.exerciseIndex === prev.currentExerciseIndex && s.rpe >= 9)?.setIndex ?? Infinity) + 1
@@ -367,7 +402,7 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [state, flatExercises])
+  }, [state, flatExercises, workoutId])
 
   // Page Visibility + beforeunload synchronous saves.
   useEffect(() => {
@@ -383,6 +418,29 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
       window.removeEventListener('beforeunload', handleSave)
     }
   }, [])
+
+  // Snap the rest timer to the correct value the moment the user returns —
+  // the setInterval tick above may have missed ticks (or stopped entirely)
+  // while the app was backgrounded, so don't wait for the next 1s tick to
+  // catch up to wall-clock time.
+  useEffect(() => {
+    function handleResume() {
+      if (document.visibilityState !== 'visible') return
+      const current = stateRef.current
+      if (!current || current.timerType !== 'rest' || !current.timerRunning) return
+
+      const remaining = readRestRemainingSeconds(workoutId, current.timerRemainingSeconds)
+      setState((prev) => {
+        if (!prev || prev.timerType !== 'rest') return prev
+        const next = { ...prev, timerRemainingSeconds: remaining }
+        saveActiveSession(next)
+        return next
+      })
+    }
+
+    document.addEventListener('visibilitychange', handleResume)
+    return () => document.removeEventListener('visibilitychange', handleResume)
+  }, [workoutId])
 
   const logSet = useCallback(
     (weightKg: number, reps: number, rpe: number) => {
@@ -419,9 +477,10 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
         timerRunning: true,
       }
 
+      setRestEndTime(workoutId, fe.block.rest_seconds)
       persist(next)
     },
-    [state, flatExercises, persist],
+    [state, flatExercises, persist, workoutId],
   )
 
   const skipSet = useCallback(() => {
@@ -429,16 +488,18 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
     const fe = flatExercises[state.currentExerciseIndex]
     if (!fe) return
 
+    const restSeconds = Math.min(fe.block.rest_seconds, 10)
     const next: ActiveSessionState = {
       ...state,
       skippedSets: [...state.skippedSets, { exerciseIndex: state.currentExerciseIndex, setIndex: state.currentSetIndex }],
       timerType: 'rest',
-      timerRemainingSeconds: Math.min(fe.block.rest_seconds, 10),
+      timerRemainingSeconds: restSeconds,
       timerRunning: true,
     }
 
+    setRestEndTime(workoutId, restSeconds)
     persist(next)
-  }, [state, flatExercises, persist])
+  }, [state, flatExercises, persist, workoutId])
 
   const markExerciseComplete = useCallback(() => {
     if (!state) return
@@ -472,8 +533,9 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
 
   const endSession = useCallback(() => {
     if (!state) return
+    clearRestEndTime(workoutId)
     persist({ ...state, sessionStatus: 'completed', timerRunning: false })
-  }, [state, persist])
+  }, [state, persist, workoutId])
 
   // ── HYROX simulation actions ──
 
