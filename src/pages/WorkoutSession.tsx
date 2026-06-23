@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { List, Pause, Play, X } from 'lucide-react'
@@ -25,8 +25,6 @@ import { loadActiveSession } from '@/lib/session/sessionStorage'
 import { kwaziOverrideKey, type KwaziOverridePayload } from '@/lib/kwazi/workoutAdaptation'
 import type { Workout } from '@/types/plan.types'
 
-const SWIPE_THRESHOLD = 60
-
 function readinessOverrideKey(workoutId: string): string {
   return `gryt_readiness_override_${workoutId}`
 }
@@ -39,7 +37,6 @@ export function WorkoutSession() {
   const userId = session?.user.id ?? null
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const touchStartX = useRef<number | null>(null)
 
   const planQuery = useQuery({
     queryKey: ['plan', userId],
@@ -386,22 +383,6 @@ export function WorkoutSession() {
   const rpeReduced = state.completedSets.some((s) => s.exerciseIndex === state.currentExerciseIndex && s.rpe >= 9)
   const fatigueTaxOnExercise = state.fatigueTaxActive && isLegExercise(block.name)
 
-  function handlePointerDown(event: React.PointerEvent) {
-    touchStartX.current = event.clientX
-  }
-
-  function handlePointerUp(event: React.PointerEvent) {
-    if (touchStartX.current === null) return
-    const delta = event.clientX - touchStartX.current
-    touchStartX.current = null
-
-    if (delta <= -SWIPE_THRESHOLD) {
-      markExerciseComplete()
-    } else if (delta >= SWIPE_THRESHOLD) {
-      skipSet()
-    }
-  }
-
   return (
     <div className="relative flex min-h-svh flex-col bg-background px-6 py-6">
       <div className="flex items-center justify-between">
@@ -462,11 +443,7 @@ export function WorkoutSession() {
         </div>
       )}
 
-      <div
-        className="flex flex-1 flex-col items-center justify-center gap-4 py-6 text-center"
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-      >
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-6 text-center">
         <div>
           <h1 className="text-3xl font-bold text-text-primary">{block.name}</h1>
           <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-text-secondary">
@@ -497,7 +474,22 @@ export function WorkoutSession() {
           {showSetLogger && <SetLogger defaultReps={typeof block.reps === 'number' ? block.reps : null} onLogSet={logSet} />}
         </div>
 
-        <p className="text-xs text-text-muted">Swipe left to mark exercise complete · swipe right to skip set</p>
+        {showSetLogger && (
+          <div className="flex w-full max-w-sm gap-3">
+            <button
+              onClick={skipSet}
+              className="flex-1 rounded-xl border border-border bg-elevated px-4 py-3 text-sm font-medium text-text-secondary active:opacity-70"
+            >
+              Skip Set
+            </button>
+            <button
+              onClick={markExerciseComplete}
+              className="flex-1 rounded-xl border border-brand-orange bg-brand-orange/10 px-4 py-3 text-sm font-medium text-brand-orange active:opacity-70"
+            >
+              Complete Exercise
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="sticky bottom-0 left-0 right-0 flex gap-3 border-t border-border bg-background pt-4 pb-2">
