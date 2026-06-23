@@ -91,10 +91,10 @@ export function Hero() {
         justifyContent: 'center',
         textAlign: 'center',
         // Top padding must clear both the Dynamic Island/notch safe area
-        // and the fixed MarketingNav pill above it (~80px = nav height +
+        // and the fixed MarketingNav pill above it (~100px = nav height +
         // breathing room) — a flat px value would let the nav and hero text
         // overlap the Dynamic Island on notched iPhones.
-        paddingTop: 'calc(env(safe-area-inset-top) + 80px)',
+        paddingTop: 'calc(env(safe-area-inset-top) + 100px)',
         paddingRight: 20,
         paddingBottom: 60,
         paddingLeft: 20,
