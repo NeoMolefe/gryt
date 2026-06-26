@@ -41,6 +41,9 @@ export function InjuryUpdateModal({ isOpen, initialText, initialFlags, isSaving,
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={4}
+            spellCheck={true}
+            autoCorrect="on"
+            autoCapitalize="sentences"
             className="w-full rounded-xl border border-border bg-elevated p-3 text-sm text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-orange"
             placeholder="e.g. Tweaked my lower back deadlifting last week"
           />

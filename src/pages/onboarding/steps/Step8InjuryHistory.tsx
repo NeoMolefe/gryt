@@ -17,6 +17,9 @@ export function Step8InjuryHistory({ data, updateData }: StepProps) {
         onChange={(event) => updateData('injuryHistory', event.target.value)}
         placeholder="E.g. lower back pain, previous shoulder injury…"
         rows={5}
+        spellCheck={true}
+        autoCorrect="on"
+        autoCapitalize="sentences"
         className="min-h-[120px] rounded-xl border border-border bg-elevated px-4 py-3 text-text-primary placeholder:text-text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-orange"
       />
     </div>
