@@ -62,6 +62,35 @@ function readRestRemainingSeconds(workoutId: string, fallback: number): number {
   return Math.max(0, Math.round((stored - Date.now()) / 1000))
 }
 
+// Same wall-clock approach as the rest timer above, applied to the work
+// timer (timed run intervals, tempo runs, etc.) — it had the same
+// background-suspend freeze bug.
+function workEndKey(workoutId: string): string {
+  return `gryt_work_end_${workoutId}`
+}
+
+function setWorkEndTime(workoutId: string, durationSeconds: number): void {
+  try {
+    localStorage.setItem(workEndKey(workoutId), String(Date.now() + durationSeconds * 1000))
+  } catch {
+    // ignore storage failures (e.g. private browsing, quota exceeded)
+  }
+}
+
+function clearWorkEndTime(workoutId: string): void {
+  try {
+    localStorage.removeItem(workEndKey(workoutId))
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function readWorkRemainingSeconds(workoutId: string, fallback: number): number {
+  const stored = Number(localStorage.getItem(workEndKey(workoutId)) ?? 0)
+  if (!stored) return fallback
+  return Math.max(0, Math.round((stored - Date.now()) / 1000))
+}
+
 function createFreshState(
   userId: string,
   workoutId: string,
@@ -347,7 +376,7 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
         const remaining =
           prev.timerType === 'rest'
             ? readRestRemainingSeconds(workoutId, Math.max(0, prev.timerRemainingSeconds - 1))
-            : prev.timerRemainingSeconds - 1
+            : readWorkRemainingSeconds(workoutId, Math.max(0, prev.timerRemainingSeconds - 1))
 
         if (remaining > 0) {
           const next = { ...prev, timerRemainingSeconds: remaining }
@@ -395,7 +424,14 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
           return next
         }
 
-        const next: ActiveSessionState = { ...prev, timerRunning: false }
+        // Work timer reaching 0 — transitions to "ready to log" (showSetLogger).
+        // remaining must be assigned explicitly here: prev.timerRemainingSeconds
+        // is still the pre-tick value (e.g. 1, not 0), and without this the UI
+        // never satisfies `timerRemainingSeconds === 0`, so showStartTimer stays
+        // true and the "Start" button reappears instead of the set logger —
+        // tapping Start just restarts the same final second forever.
+        clearWorkEndTime(workoutId)
+        const next: ActiveSessionState = { ...prev, timerRemainingSeconds: remaining, timerRunning: false }
         saveActiveSession(next)
         return next
       })
@@ -419,23 +455,33 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
     }
   }, [])
 
-  // Snap the rest timer to the correct value the moment the user returns —
-  // the setInterval tick above may have missed ticks (or stopped entirely)
-  // while the app was backgrounded, so don't wait for the next 1s tick to
-  // catch up to wall-clock time.
+  // Snap the rest/work timer to the correct value the moment the user
+  // returns — the setInterval tick above may have missed ticks (or stopped
+  // entirely) while the app was backgrounded, so don't wait for the next 1s
+  // tick to catch up to wall-clock time.
   useEffect(() => {
     function handleResume() {
       if (document.visibilityState !== 'visible') return
       const current = stateRef.current
-      if (!current || current.timerType !== 'rest' || !current.timerRunning) return
+      if (!current || !current.timerRunning) return
 
-      const remaining = readRestRemainingSeconds(workoutId, current.timerRemainingSeconds)
-      setState((prev) => {
-        if (!prev || prev.timerType !== 'rest') return prev
-        const next = { ...prev, timerRemainingSeconds: remaining }
-        saveActiveSession(next)
-        return next
-      })
+      if (current.timerType === 'rest') {
+        const remaining = readRestRemainingSeconds(workoutId, current.timerRemainingSeconds)
+        setState((prev) => {
+          if (!prev || prev.timerType !== 'rest') return prev
+          const next = { ...prev, timerRemainingSeconds: remaining }
+          saveActiveSession(next)
+          return next
+        })
+      }
+
+      if (current.timerType === 'work' && current.timerRunning) {
+        const remaining = readWorkRemainingSeconds(workoutId, current.timerRemainingSeconds)
+        setState((prev) => {
+          if (!prev || prev.timerType !== 'work') return prev
+          return { ...prev, timerRemainingSeconds: remaining }
+        })
+      }
     }
 
     document.addEventListener('visibilitychange', handleResume)
@@ -523,8 +569,11 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
 
   const startTimer = useCallback(() => {
     if (!state) return
+    if (state.timerType === 'work' && state.timerRemainingSeconds > 0) {
+      setWorkEndTime(workoutId, state.timerRemainingSeconds)
+    }
     persist({ ...state, timerRunning: true })
-  }, [state, persist])
+  }, [state, persist, workoutId])
 
   const togglePause = useCallback(() => {
     if (!state) return
@@ -534,6 +583,7 @@ export function useWorkoutSession(workoutId: string, effectiveWorkout: Workout |
   const endSession = useCallback(() => {
     if (!state) return
     clearRestEndTime(workoutId)
+    clearWorkEndTime(workoutId)
     persist({ ...state, sessionStatus: 'completed', timerRunning: false })
   }, [state, persist, workoutId])
 

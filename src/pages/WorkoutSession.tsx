@@ -37,6 +37,7 @@ export function WorkoutSession() {
   const userId = session?.user.id ?? null
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
 
   const planQuery = useQuery({
     queryKey: ['plan', userId],
@@ -235,6 +236,13 @@ export function WorkoutSession() {
 
   function handleStartRecovery() {
     setRecoveryGateChoice('recovery')
+  }
+
+  function handleStartTimer() {
+    if (isStarting) return
+    setIsStarting(true)
+    startTimer()
+    setTimeout(() => setIsStarting(false), 500)
   }
 
   function handleContinueOriginal() {
@@ -457,7 +465,8 @@ export function WorkoutSession() {
           {isWork && state.timerRemainingSeconds === 0 && (
             <span className="text-lg font-semibold text-text-primary">Ready</span>
           )}
-          {isRest && (
+          {/* Show MM:SS during both rest AND timed work (runs, tempo) */}
+          {(isRest || (isWork && durationSeconds && durationSeconds > 0)) && (
             <span className="text-2xl font-bold tabular-nums text-text-primary">
               {Math.floor(state.timerRemainingSeconds / 60).toString().padStart(2, '0')}:
               {(state.timerRemainingSeconds % 60).toString().padStart(2, '0')}
@@ -475,7 +484,7 @@ export function WorkoutSession() {
         </div>
 
         <div className="w-full max-w-sm">
-          {showStartTimer && <Button onClick={startTimer}>Start ({durationSeconds}s)</Button>}
+          {showStartTimer && <Button onClick={handleStartTimer}>Start ({durationSeconds}s)</Button>}
           {showResumeRest && <Button onClick={startTimer}>Tap to resume</Button>}
           {showSetLogger && <SetLogger defaultReps={typeof block.reps === 'number' ? block.reps : null} onLogSet={logSet} />}
         </div>
