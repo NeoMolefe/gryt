@@ -2474,6 +2474,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     coaching_cues: ['Bar over hips, upper back on bench', 'Drive hips to full extension', 'Squeeze glutes hard at the top'],
     is_compound: true,
     movement_pattern: 'hinge',
+    min_experience: 'intermediate',
   },
   {
     name: 'Barbell Step Up',
