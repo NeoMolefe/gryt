@@ -5,6 +5,9 @@ import { getTrainingForLabel } from '@/lib/plan/trainingForLabel'
 import { useAuthStore } from '@/store/authStore'
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useNotifications } from '@/hooks/useNotifications'
+import { useSubscription } from '@/hooks/useSubscription'
+import { trialDaysRemaining } from '@/types/subscription.types'
+import { Paywall } from '@/components/payment/Paywall'
 import { RECOVERY_TIPS } from '@/lib/dashboard/recoveryTips'
 import { getDayOfYear } from '@/lib/dashboard/schedule'
 import type { ScheduleDay } from '@/lib/dashboard/schedule'
@@ -71,6 +74,7 @@ export function Dashboard() {
   const session = useAuthStore((state) => state.session)
   const refreshProfile = useAuthStore((state) => state.refreshProfile)
   const { notifications, unreadCount, markRead } = useNotifications(session?.user.id ?? null)
+  const { data: subscription } = useSubscription(session?.user.id ?? null)
 
   const location = useLocation()
   const [toastMessage, setToastMessage] = useState<string | null>(
@@ -84,6 +88,7 @@ export function Dashboard() {
   const [isCheckInOpen, setIsCheckInOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [previewDay, setPreviewDay] = useState<ScheduleDay | null>(null)
+  const [showPaywall, setShowPaywall] = useState(false)
 
   if (isLoading) {
     return (
@@ -141,6 +146,41 @@ export function Dashboard() {
           hasNotifications={unreadCount > 0}
           onBellClick={() => setIsNotificationsOpen((open) => !open)}
         />
+
+        {subscription?.status === 'trial' && trialDaysRemaining(subscription) <= 3 && (
+          <div
+            style={{
+              background: 'rgba(255,92,26,0.1)',
+              border: '1px solid rgba(255,92,26,0.2)',
+              borderRadius: 12,
+              padding: '12px 16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <p style={{ fontSize: 14, color: 'var(--color-text-primary)', margin: 0 }}>
+              {trialDaysRemaining(subscription) === 0
+                ? 'Your trial ends today.'
+                : `${trialDaysRemaining(subscription)} day${trialDaysRemaining(subscription) === 1 ? '' : 's'} left in your trial.`}
+            </p>
+            <button
+              onClick={() => setShowPaywall(true)}
+              style={{
+                background: '#FF5C1A',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 20,
+                padding: '6px 14px',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+              }}
+            >
+              Subscribe
+            </button>
+          </div>
+        )}
 
         <Greeting firstName={profile.first_name ?? 'there'} streak={streak} />
 
@@ -242,6 +282,14 @@ export function Dashboard() {
             setTutorialDismissed(true)
             void refreshProfile()
           }}
+        />
+      )}
+
+      {showPaywall && subscription && session && (
+        <Paywall
+          userId={session.user.id}
+          userEmail={session.user.email ?? ''}
+          subscription={subscription}
         />
       )}
     </motion.div>

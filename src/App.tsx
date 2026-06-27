@@ -7,6 +7,7 @@ import { useThemeStore } from '@/store/themeStore'
 import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicOnlyRoute } from '@/routes/PublicOnlyRoute'
 import { AppShell } from '@/components/layout/AppShell'
+import { SubscriptionGuard } from '@/components/payment/SubscriptionGuard'
 import { abandonStaleSession } from '@/lib/session/sessionStorage'
 import { abandonSessionLog } from '@/lib/dashboard/queries'
 
@@ -103,9 +104,11 @@ function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <AppShell>
-                    <Dashboard />
-                  </AppShell>
+                  <SubscriptionGuard>
+                    <AppShell>
+                      <Dashboard />
+                    </AppShell>
+                  </SubscriptionGuard>
                 </ProtectedRoute>
               }
             />
@@ -113,9 +116,11 @@ function App() {
               path="/workouts"
               element={
                 <ProtectedRoute>
-                  <AppShell>
-                    <Workouts />
-                  </AppShell>
+                  <SubscriptionGuard>
+                    <AppShell>
+                      <Workouts />
+                    </AppShell>
+                  </SubscriptionGuard>
                 </ProtectedRoute>
               }
             />
@@ -123,9 +128,11 @@ function App() {
               path="/progress"
               element={
                 <ProtectedRoute>
-                  <AppShell>
-                    <Progress />
-                  </AppShell>
+                  <SubscriptionGuard>
+                    <AppShell>
+                      <Progress />
+                    </AppShell>
+                  </SubscriptionGuard>
                 </ProtectedRoute>
               }
             />
@@ -133,9 +140,11 @@ function App() {
               path="/kwazi"
               element={
                 <ProtectedRoute>
-                  <AppShell>
-                    <Kwazi />
-                  </AppShell>
+                  <SubscriptionGuard>
+                    <AppShell>
+                      <Kwazi />
+                    </AppShell>
+                  </SubscriptionGuard>
                 </ProtectedRoute>
               }
             />
@@ -143,9 +152,11 @@ function App() {
               path="/settings"
               element={
                 <ProtectedRoute>
-                  <AppShell>
-                    <Settings />
-                  </AppShell>
+                  <SubscriptionGuard>
+                    <AppShell>
+                      <Settings />
+                    </AppShell>
+                  </SubscriptionGuard>
                 </ProtectedRoute>
               }
             />
@@ -153,7 +164,9 @@ function App() {
               path="/session/:workoutId"
               element={
                 <ProtectedRoute>
-                  <WorkoutSession />
+                  <SubscriptionGuard>
+                    <WorkoutSession />
+                  </SubscriptionGuard>
                 </ProtectedRoute>
               }
             />
