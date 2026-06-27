@@ -37,8 +37,9 @@ export async function initiateCheckout({ userId, userEmail, planType }: Checkout
           resolve()
           // Reload to refresh subscription state
           window.location.href = '/dashboard'
-        } catch {
-          reject(new Error('Payment verification failed'))
+        } catch (err) {
+          console.error('Checkout error:', err)
+          reject(err instanceof Error ? err : new Error('Payment verification failed'))
         }
       },
       onClose: () => {

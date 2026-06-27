@@ -39,7 +39,8 @@ export function Paywall({ userId, userEmail, subscription }: PaywallProps) {
     setError(null)
     try {
       await initiateCheckout({ userId, userEmail, planType })
-    } catch {
+    } catch (err) {
+      console.error('Checkout error:', err)
       setError('Something went wrong. Please try again.')
       setIsLoading(false)
     }
