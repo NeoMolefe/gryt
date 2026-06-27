@@ -1,10 +1,10 @@
 import type { PlanType } from '@/types/subscription.types'
 
 const PLAN_CODES: Record<PlanType, string> = {
-  founding_monthly: 'PLN_d4zfhw5jfzlshwp',
-  founding_annual: 'PLN_np7snhz7vxvje32',
-  standard_monthly: 'PLN_t2uo7040g02bol6',
-  standard_annual: 'PLN_c7b1y99b1z98cxz',
+  founding_monthly: 'PLN_brb7na6dxm7848r',
+  founding_annual: 'PLN_gn8m2cnb5aophj5',
+  standard_monthly: 'PLN_k85s1tcfqq45jx4',
+  standard_annual: 'PLN_8lymje9h9hz0mee',
 }
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string
@@ -20,6 +20,28 @@ export async function initiateCheckout({ userId, userEmail, planType }: Checkout
   await loadPaystackScript()
 
   return new Promise((resolve, reject) => {
+    // Named function declarations, not arrow functions inside the object
+    // literal — Paystack's inline.js validator rejects some arrow function
+    // shapes for callback/onClose with "Attribute callback must be a valid
+    // function". Named function references pass validation.
+    function onSuccess(response: { reference: string }) {
+      verifyPayment(response.reference, userId, planType)
+        .then(() => {
+          // Reload to refresh subscription state
+          window.location.href = '/dashboard'
+          resolve()
+        })
+        .catch((err) => {
+          console.error('Checkout error:', err)
+          reject(err instanceof Error ? err : new Error('Payment verification failed'))
+        })
+    }
+
+    function onClose() {
+      // User closed the modal — not an error, just resolve
+      resolve()
+    }
+
     // @ts-expect-error — PaystackPop is loaded dynamically
     const handler = window.PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
@@ -30,23 +52,10 @@ export async function initiateCheckout({ userId, userEmail, planType }: Checkout
         plan_type: planType,
         is_founding: planType.startsWith('founding'),
       },
-      callback: async (response: { reference: string }) => {
-        // Payment completed — verify on the server
-        try {
-          await verifyPayment(response.reference, userId, planType)
-          resolve()
-          // Reload to refresh subscription state
-          window.location.href = '/dashboard'
-        } catch (err) {
-          console.error('Checkout error:', err)
-          reject(err instanceof Error ? err : new Error('Payment verification failed'))
-        }
-      },
-      onClose: () => {
-        // User closed the modal — not an error, just resolve
-        resolve()
-      },
+      callback: onSuccess,
+      onClose: onClose,
     })
+
     handler.openIframe()
   })
 }
