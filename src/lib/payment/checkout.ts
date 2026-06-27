@@ -1,10 +1,10 @@
 import type { PlanType } from '@/types/subscription.types'
 
 const PLAN_CODES: Record<PlanType, string> = {
-  founding_monthly: 'PLN_brb7na6dxm7848r',
-  founding_annual: 'PLN_gn8m2cnb5aophj5',
-  standard_monthly: 'PLN_k85s1tcfqq45jx4',
-  standard_annual: 'PLN_8lymje9h9hz0mee',
+  founding_monthly: 'PLN_d4zfhw5jfzlshwp',
+  founding_annual: 'PLN_np7snhz7vxvje32',
+  standard_monthly: 'PLN_t2uo7040g02bol6',
+  standard_annual: 'PLN_c7b1y99b1z98cxz',
 }
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string
