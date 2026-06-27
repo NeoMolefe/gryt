@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/routes/ProtectedRoute'
 import { PublicOnlyRoute } from '@/routes/PublicOnlyRoute'
 import { AppShell } from '@/components/layout/AppShell'
 import { SubscriptionGuard } from '@/components/payment/SubscriptionGuard'
+import { AdminGuard } from '@/components/admin/AdminGuard'
 import { abandonStaleSession } from '@/lib/session/sessionStorage'
 import { abandonSessionLog } from '@/lib/dashboard/queries'
 
@@ -26,6 +27,7 @@ const WorkoutSession = lazy(() => import('@/pages/WorkoutSession').then((m) => (
 const Kwazi = lazy(() => import('@/pages/Kwazi').then((m) => ({ default: m.Kwazi })))
 const Progress = lazy(() => import('@/pages/Progress').then((m) => ({ default: m.Progress })))
 const Settings = lazy(() => import('@/pages/Settings').then((m) => ({ default: m.Settings })))
+const Admin = lazy(() => import('@/pages/Admin').then((m) => ({ default: m.Admin })))
 
 const queryClient = new QueryClient()
 
@@ -176,6 +178,14 @@ function App() {
                 <ProtectedRoute>
                   <Onboarding />
                 </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AdminGuard>
+                  <Admin />
+                </AdminGuard>
               }
             />
           </Routes>
