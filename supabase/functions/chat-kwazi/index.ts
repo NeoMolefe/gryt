@@ -501,12 +501,12 @@ Deno.serve(async (req) => {
     const today = todayISO()
     const { data: usageRow } = await supabase
       .from('kwazi_usage')
-      .select('count')
+      .select('message_count')
       .eq('user_id', userId)
-      .eq('date', today)
+      .eq('usage_date', today)
       .maybeSingle()
 
-    const currentCount = usageRow?.count ?? 0
+    const currentCount = usageRow?.message_count ?? 0
     if (currentCount >= DAILY_LIMIT) {
       return jsonResponse({
         reply: null,
@@ -575,7 +575,7 @@ Deno.serve(async (req) => {
     // ── Escalation ──
     if (containsEscalationKeyword(lastMessage.content) && !pendingSwap) {
       const remaining = DAILY_LIMIT - currentCount
-      await supabase.from('kwazi_usage').upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id,date' })
+      await supabase.from('kwazi_usage').upsert({ user_id: userId, usage_date: today, message_count: currentCount + 1 }, { onConflict: 'user_id,usage_date' })
       return jsonResponse({
         reply: 'This needs a human touch — please reach out to info@gryt.co.za and the team will help directly.',
         blocked: false,
@@ -627,7 +627,7 @@ Deno.serve(async (req) => {
       const summary = swaps.map((s) => `${s.original} → ${s.replacement}`).join(', ')
       const scopeLabel = scope === 'single_session' ? "today's session" : scope === 'this_week' ? 'the rest of this week' : 'permanently'
 
-      await supabase.from('kwazi_usage').upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id,date' })
+      await supabase.from('kwazi_usage').upsert({ user_id: userId, usage_date: today, message_count: currentCount + 1 }, { onConflict: 'user_id,usage_date' })
 
       return jsonResponse({
         reply: `Got it. ${summary}. Scope: ${scopeLabel}. Confirm this swap?`,
@@ -643,7 +643,7 @@ Deno.serve(async (req) => {
       const choice = lastMessage.content.trim()
 
       if (choice === 'Keep original') {
-        await supabase.from('kwazi_usage').upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id,date' })
+        await supabase.from('kwazi_usage').upsert({ user_id: userId, usage_date: today, message_count: currentCount + 1 }, { onConflict: 'user_id,usage_date' })
         return jsonResponse({
           reply: 'No problem — keeping your session as planned. Let me know if anything changes.',
           blocked: false,
@@ -679,7 +679,7 @@ Deno.serve(async (req) => {
         const summary = newSwaps.map((s) => `${s.original} → ${s.replacement}`).join(', ')
         const scopeLabel = pendingSwap.scope === 'single_session' ? "today's session" : pendingSwap.scope === 'this_week' ? 'the rest of this week' : 'permanently'
 
-        await supabase.from('kwazi_usage').upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id,date' })
+        await supabase.from('kwazi_usage').upsert({ user_id: userId, usage_date: today, message_count: currentCount + 1 }, { onConflict: 'user_id,usage_date' })
 
         return jsonResponse({
           reply: `How about this instead. ${summary}. Scope: ${scopeLabel}. Confirm this swap?`,
@@ -752,7 +752,7 @@ Deno.serve(async (req) => {
           )
         }
 
-        await supabase.from('kwazi_usage').upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id,date' })
+        await supabase.from('kwazi_usage').upsert({ user_id: userId, usage_date: today, message_count: currentCount + 1 }, { onConflict: 'user_id,usage_date' })
 
         const summary = pendingSwap.swaps.map((s) => `${s.original} → ${s.replacement}`).join(', ')
         let reply = `Done. ${summary} is locked in. Your plan and dashboard are updated.`
@@ -786,7 +786,7 @@ Deno.serve(async (req) => {
 
           if (targets.length > 0) {
             const newPending: PendingSwap = { stage: 'diagnostic', kind: 'equipment', workoutId: String(workout.id), targets, swaps: [] }
-            await supabase.from('kwazi_usage').upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id,date' })
+            await supabase.from('kwazi_usage').upsert({ user_id: userId, usage_date: today, message_count: currentCount + 1 }, { onConflict: 'user_id,usage_date' })
             return jsonResponse({
               reply: "Got it — let's make this session work without a gym. How long will you be without equipment?",
               chips: ['Just today', 'A few days', 'Permanent change'],
@@ -807,7 +807,7 @@ Deno.serve(async (req) => {
               swaps: [],
             }
 
-            await supabase.from('kwazi_usage').upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id,date' })
+            await supabase.from('kwazi_usage').upsert({ user_id: userId, usage_date: today, message_count: currentCount + 1 }, { onConflict: 'user_id,usage_date' })
 
             if (intent.kind === 'injury') {
               return jsonResponse({
@@ -835,7 +835,7 @@ Deno.serve(async (req) => {
     const systemPrompt = buildSystemPrompt(profile ?? {}, plan, workout, recentSessions, memoryText)
     const { reply, chips } = await callClaude(systemPrompt, messages, anthropicKey)
 
-    await supabase.from('kwazi_usage').upsert({ user_id: userId, date: today, count: currentCount + 1 }, { onConflict: 'user_id,date' })
+    await supabase.from('kwazi_usage').upsert({ user_id: userId, usage_date: today, message_count: currentCount + 1 }, { onConflict: 'user_id,usage_date' })
 
     return jsonResponse({
       reply,
