@@ -97,6 +97,13 @@ export async function submitOnboarding(
     throw new Error(planError.message)
   }
 
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  await supabase
+    .from('regenerate_usage')
+    .update({ to_archetype: generated.archetype })
+    .eq('user_id', userId)
+    .eq('month', currentMonth)
+
   const workoutRows = generated.sessions.map((session) => ({
     plan_id: planRow.id,
     user_id: userId,

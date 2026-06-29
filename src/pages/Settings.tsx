@@ -116,6 +116,15 @@ export function Settings() {
 
     setIsRegenerating(true)
     try {
+      const { data: currentPlan } = await supabase
+        .from('plans')
+        .select('archetype')
+        .eq('user_id', userId)
+        .eq('active', true)
+        .maybeSingle()
+
+      const fromArchetype = currentPlan?.archetype ?? null
+
       // deactivateActivePlans is the actual point of commitment here — the
       // new plan itself is created later, in Onboarding.tsx's own submit
       // flow, once the user finishes re-running onboarding. Spending the
@@ -125,7 +134,16 @@ export function Settings() {
       await deactivateActivePlans(userId)
       await supabase
         .from('regenerate_usage')
-        .upsert({ user_id: userId, month: currentMonth, count: currentCount + 1 }, { onConflict: 'user_id,month' })
+        .upsert(
+          {
+            user_id: userId,
+            month: currentMonth,
+            count: currentCount + 1,
+            from_archetype: fromArchetype,
+            regenerated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,month' },
+        )
       setRegenerateRemaining(Math.max(0, MONTHLY_REGENERATE_LIMIT - (currentCount + 1)))
       navigate('/onboarding', { state: { prefill: prefillFromProfile(profile), isRegeneration: true } })
     } finally {
