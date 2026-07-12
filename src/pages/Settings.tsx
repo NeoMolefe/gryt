@@ -318,6 +318,34 @@ export function Settings() {
             Sign Out
           </button>
         </section>
+
+        {userId === 'e99714c7-763c-4179-9b5c-a4e259e19abb' && (
+          <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--color-border)' }}>
+            <button
+              onClick={() => navigate('/admin')}
+              style={{
+                width: '100%',
+                background: 'rgba(255,92,26,0.08)',
+                border: '1px solid rgba(255,92,26,0.25)',
+                borderRadius: 14,
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                color: '#FF5C1A',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>⚙️</span>
+                <span style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.02em' }}>
+                  Admin Portal
+                </span>
+              </div>
+              <span style={{ fontSize: 18, opacity: 0.6 }}>›</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <RegeneratePlanModal
