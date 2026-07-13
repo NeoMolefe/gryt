@@ -368,6 +368,7 @@ export function WorkoutSession() {
   if (!currentExercise) return null
 
   const block = currentExercise.block
+  const isConditioningExercise = currentExercise.section === 'conditioning'
   const durationSeconds = parseDurationSeconds(block.reps)
   const isWork = state.timerType === 'work'
   const isRest = state.timerType === 'rest'
@@ -455,8 +456,17 @@ export function WorkoutSession() {
         <div>
           <h1 className="text-3xl font-bold text-text-primary">{block.name}</h1>
           <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Set {currentSetNumber} of {totalSets}
+            {isConditioningExercise
+              ? `Interval ${currentSetNumber} of ${totalSets}`
+              : `Set ${currentSetNumber} of ${totalSets}`}
           </p>
+          {isConditioningExercise && (
+            <p className="mt-1 text-sm text-text-secondary">
+              {typeof block.reps === 'string' ? block.reps : `${block.sets} × ${block.reps}`}
+              {block.rpe_target != null ? ` · RPE ${block.rpe_target}` : ''}
+              {` · ${block.rest_seconds}s rest between intervals`}
+            </p>
+          )}
         </div>
 
         {block.coaching_cues[0] && <p className="max-w-xs text-sm text-text-secondary">{block.coaching_cues[0]}</p>}
@@ -486,10 +496,17 @@ export function WorkoutSession() {
         <div className="w-full max-w-sm">
           {showStartTimer && <Button onClick={handleStartTimer}>Start ({durationSeconds}s)</Button>}
           {showResumeRest && <Button onClick={startTimer}>Tap to resume</Button>}
-          {showSetLogger && <SetLogger defaultReps={typeof block.reps === 'number' ? block.reps : null} onLogSet={logSet} />}
+          {showSetLogger && isConditioningExercise && (
+            <Button onClick={() => logSet(0, 0, block.rpe_target ?? 7)}>
+              Complete Interval {currentSetNumber}
+            </Button>
+          )}
+          {showSetLogger && !isConditioningExercise && (
+            <SetLogger defaultReps={typeof block.reps === 'number' ? block.reps : null} onLogSet={logSet} />
+          )}
         </div>
 
-        {showSetLogger && (
+        {showSetLogger && !isConditioningExercise && (
           <div className="flex w-full max-w-sm gap-3">
             <button
               onClick={skipSet}
