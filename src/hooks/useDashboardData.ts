@@ -20,7 +20,9 @@ import {
   formatDateISO,
   getCurrentWeekNumber,
   getDayOffsetInWeek,
+  getTodayDayNumberFromIndices,
   getWeekSchedule,
+  getWeekScheduleFromIndices,
 } from '@/lib/dashboard/schedule'
 import { selectMobilityRoutine } from '@/lib/dashboard/selectMobilityRoutine'
 import { calculateStreak } from '@/lib/dashboard/streak'
@@ -99,6 +101,7 @@ export function useDashboardData() {
   const workouts = workoutsQuery.data ?? []
   const checkins = useMemo(() => checkinsQuery.data ?? [], [checkinsQuery.data])
   const availabilityDays = profile?.availability_days ?? 0
+  const trainingDayIndices = profile?.training_day_indices ?? null
   const xpTotal = profile?.xp_total ?? 0
 
   const todayIso = formatDateISO(now)
@@ -118,12 +121,26 @@ export function useDashboardData() {
   const weekNumber = plan ? getCurrentWeekNumber(plan.start_date, plan.total_weeks, now) : 1
 
   const todaysWorkout = plan
-    ? findTodaysWorkout(workouts, weekNumber, availabilityDays, plan.start_date, now)
+    ? trainingDayIndices
+      ? (() => {
+          const dayNum = getTodayDayNumberFromIndices(trainingDayIndices, now)
+          if (!dayNum) return null
+          return workouts.find((w) => w.week_number === weekNumber && w.day_number === dayNum) ?? null
+        })()
+      : findTodaysWorkout(workouts, weekNumber, availabilityDays, plan.start_date, now)
     : null
 
-  const weekSchedule = plan ? getWeekSchedule(workouts, weekNumber, plan.start_date, availabilityDays, now) : []
+  const weekSchedule = plan
+    ? trainingDayIndices
+      ? getWeekScheduleFromIndices(workouts, weekNumber, trainingDayIndices, now)
+      : getWeekSchedule(workouts, weekNumber, plan.start_date, availabilityDays, now)
+    : []
 
-  const isRestDay = plan ? getDayOffsetInWeek(plan.start_date, now) + 1 > availabilityDays : false
+  const isRestDay = trainingDayIndices
+    ? !trainingDayIndices.includes(now.getDay())
+    : plan
+      ? getDayOffsetInWeek(plan.start_date, now) + 1 > availabilityDays
+      : false
 
   const previousWorkout = plan
     ? findPreviousTrainingWorkout(workouts, plan.total_weeks, availabilityDays, plan.start_date, now)

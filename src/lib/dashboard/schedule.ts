@@ -102,6 +102,51 @@ export function countConsecutiveTrainingDays(startDate: string, availabilityDays
   return count
 }
 
+/** Given calendar weekday indices (e.g. [1,3,5] for Mon/Wed/Fri), returns today's
+ * 1-indexed day_number within the training week. Returns null on rest days. */
+export function getTodayDayNumberFromIndices(trainingDayIndices: number[], now: Date = new Date()): number | null {
+  const today = now.getDay()
+  const sorted = [...trainingDayIndices].sort((a, b) => a - b)
+  const pos = sorted.indexOf(today)
+  return pos === -1 ? null : pos + 1
+}
+
+/** Builds a 7-day strip for the current calendar week (Sun–Sat) using trainingDayIndices.
+ * Training days map their sorted position to day_number; rest days have no workout. */
+export function getWeekScheduleFromIndices(
+  workouts: Workout[],
+  weekNumber: number,
+  trainingDayIndices: number[],
+  now: Date = new Date(),
+): ScheduleDay[] {
+  const today = now.getDay()
+  const sorted = [...trainingDayIndices].sort((a, b) => a - b)
+
+  const weekStart = new Date(now)
+  weekStart.setDate(now.getDate() - today)
+  weekStart.setHours(0, 0, 0, 0)
+
+  return Array.from({ length: 7 }, (_, offset) => {
+    const dayOfWeek = offset
+    const date = new Date(weekStart)
+    date.setDate(weekStart.getDate() + offset)
+
+    const isTrainingDay = sorted.includes(dayOfWeek)
+    const dayNumber = isTrainingDay ? sorted.indexOf(dayOfWeek) + 1 : 0
+    const workout = isTrainingDay
+      ? (workouts.find((w) => w.week_number === weekNumber && w.day_number === dayNumber) ?? null)
+      : null
+
+    return {
+      date,
+      dayNumber,
+      isToday: dayOfWeek === today,
+      isRestDay: !isTrainingDay,
+      workout,
+    }
+  })
+}
+
 /** Finds the most recently completed training day's workout, looking back up to 7 days. */
 export function findPreviousTrainingWorkout(
   workouts: Workout[],

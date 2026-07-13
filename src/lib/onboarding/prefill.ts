@@ -14,6 +14,7 @@ export function prefillFromProfile(profile: Profile): OnboardingData {
     experience: profile.experience ?? null,
     primaryGoal: profile.primary_goal ?? null,
     secondaryGoals: profile.secondary_goals ?? [],
+    trainingDayIndices: profile.training_day_indices ?? [],
     availabilityDays: profile.availability_days ?? null,
     sessionDuration: profile.session_duration_minutes ?? null,
     equipment: profile.equipment ?? null,

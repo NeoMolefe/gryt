@@ -46,8 +46,8 @@ export function validateStep(
       break
     }
     case 'availability': {
-      if (!data.availabilityDays)
-        errors.availabilityDays = 'Please select how many days you can train'
+      if (data.trainingDayIndices.length < 2)
+        errors.trainingDayIndices = 'Select at least 2 training days'
       if (!data.sessionDuration)
         errors.sessionDuration = 'Please select a session duration'
       break
@@ -85,7 +85,7 @@ export const FUNCTIONAL_ATHLETIC_MIN_DAYS = 4
 export function summaryBlockReason(data: OnboardingData): string | null {
   if (
     data.primaryGoal === 'functional_athletic' &&
-    (data.availabilityDays ?? 0) < FUNCTIONAL_ATHLETIC_MIN_DAYS
+    data.trainingDayIndices.length < FUNCTIONAL_ATHLETIC_MIN_DAYS
   ) {
     return `This programme requires a minimum of ${FUNCTIONAL_ATHLETIC_MIN_DAYS} training days per week. Please update your availability.`
   }

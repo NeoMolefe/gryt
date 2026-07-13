@@ -9,6 +9,7 @@ import { useThemeStore, type ThemeMode } from '@/store/themeStore'
 import { InjuryUpdateModal } from '@/components/settings/InjuryUpdateModal'
 import { RegenerateLimitModal } from '@/components/settings/RegenerateLimitModal'
 import { RegeneratePlanModal } from '@/components/settings/RegeneratePlanModal'
+import { TrainingDaysModal } from '@/components/settings/TrainingDaysModal'
 import { SettingsToggle } from '@/components/settings/SettingsToggle'
 import { prefillFromProfile } from '@/lib/onboarding/prefill'
 import {
@@ -24,6 +25,7 @@ import {
   fetchRegenerateRemaining,
   MONTHLY_REGENERATE_LIMIT,
   updateInjuryProfile,
+  updateTrainingDays,
 } from '@/lib/settings/queries'
 import type { InjuryFlag } from '@/types/profile'
 
@@ -61,6 +63,8 @@ export function Settings() {
   const [regenerateRemaining, setRegenerateRemaining] = useState<number | null>(null)
   const [isInjuryOpen, setIsInjuryOpen] = useState(false)
   const [isSavingInjury, setIsSavingInjury] = useState(false)
+  const [isTrainingDaysOpen, setIsTrainingDaysOpen] = useState(false)
+  const [isSavingTrainingDays, setIsSavingTrainingDays] = useState(false)
   const [isPushEnabled, setIsPushEnabled] = useState(false)
 
   const themeMode = useThemeStore((s) => s.mode)
@@ -152,6 +156,18 @@ export function Settings() {
     }
   }
 
+  async function handleSaveTrainingDays(indices: number[]) {
+    if (!userId) return
+    setIsSavingTrainingDays(true)
+    try {
+      await updateTrainingDays(userId, indices)
+      await refreshProfile()
+      setIsTrainingDaysOpen(false)
+    } finally {
+      setIsSavingTrainingDays(false)
+    }
+  }
+
   async function handleSaveInjury(text: string, flags: InjuryFlag[]) {
     if (!userId) return
     setIsSavingInjury(true)
@@ -204,6 +220,18 @@ export function Settings() {
                 )}
                 <ChevronRight size={18} className="text-text-secondary" />
               </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsTrainingDaysOpen(true)}
+              className="flex w-full items-center justify-between gap-3 rounded-xl bg-elevated px-4 py-3 text-left"
+            >
+              <span className="flex items-center gap-3 text-sm text-text-primary">
+                <RotateCw size={18} className="text-text-secondary" />
+                Update Training Days
+              </span>
+              <ChevronRight size={18} className="text-text-secondary" />
             </button>
 
             <button
@@ -358,6 +386,14 @@ export function Settings() {
       <RegenerateLimitModal
         isOpen={isRegenerateLimitReached}
         onClose={() => setIsRegenerateLimitReached(false)}
+      />
+
+      <TrainingDaysModal
+        isOpen={isTrainingDaysOpen}
+        initialIndices={profile?.training_day_indices ?? []}
+        isSaving={isSavingTrainingDays}
+        onClose={() => setIsTrainingDaysOpen(false)}
+        onSave={(indices) => void handleSaveTrainingDays(indices)}
       />
 
       <InjuryUpdateModal

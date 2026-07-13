@@ -29,6 +29,7 @@ export async function submitOnboarding(
     session_duration_minutes: data.sessionDuration,
     equipment: data.equipment,
     training_styles: data.trainingStyle,
+    training_day_indices: data.trainingDayIndices.length > 0 ? data.trainingDayIndices : null,
     injury_history: data.injuryHistory.trim() || null,
     // Clear stale event fields when the user is no longer training for a
     // specific event — otherwise a prior goal (e.g. event_type: 'hyrox')

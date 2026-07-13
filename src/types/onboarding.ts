@@ -64,6 +64,7 @@ export interface OnboardingData {
   experience: ExperienceLevel | null
   primaryGoal: PrimaryGoal | null
   secondaryGoals: SecondaryGoal[]
+  trainingDayIndices: number[]
   availabilityDays: number | null
   sessionDuration: SessionDuration | null
   equipment: Equipment | null
@@ -83,6 +84,7 @@ export const INITIAL_ONBOARDING_DATA: OnboardingData = {
   experience: null,
   primaryGoal: null,
   secondaryGoals: [],
+  trainingDayIndices: [],
   availabilityDays: null,
   sessionDuration: null,
   equipment: null,

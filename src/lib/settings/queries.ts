@@ -34,6 +34,20 @@ export async function deactivateActivePlans(userId: string): Promise<void> {
   }
 }
 
+export async function updateTrainingDays(userId: string, trainingDayIndices: number[]): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      training_day_indices: trainingDayIndices.length > 0 ? trainingDayIndices : null,
+      availability_days: trainingDayIndices.length > 0 ? trainingDayIndices.length : null,
+    })
+    .eq('id', userId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+}
+
 export async function updateInjuryProfile(userId: string, injuryHistory: string, injuryFlags: InjuryFlag[]): Promise<void> {
   const { error } = await supabase
     .from('profiles')
