@@ -2448,7 +2448,7 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     name: 'Sprints',
     category: 'sprint',
     equipment: ALL_EQUIPMENT,
-    archetypes: ['Athletic Performance', 'Hybrid Performer', 'Functional Strength & Conditioning', 'Endurance Athlete'],
+    archetypes: ['Athletic Performance', 'Hybrid Performer', 'Functional Strength & Conditioning', 'Endurance Athlete', 'General Fitness'],
     phases: NO_DELOAD,
     default_sets: 6,
     default_reps: '40m',

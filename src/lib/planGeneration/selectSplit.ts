@@ -47,11 +47,11 @@ const ARCHETYPE_TEMPLATES: Record<Archetype, SessionTemplate[]> = {
   ],
   'Hybrid Performer': [
     { session_name: 'Strength Session', focus: ['lower', 'core'] },
-    { session_name: 'Conditioning Session', focus: ['conditioning', 'vo2max', 'core'] },
+    { session_name: 'Conditioning Session', focus: ['conditioning', 'vo2max', 'sprint', 'core'] },
     { session_name: 'Strength Session II', focus: ['upper_push', 'upper_pull'] },
-    { session_name: 'Conditioning Session II', focus: ['conditioning', 'vo2max'] },
+    { session_name: 'Conditioning Session II', focus: ['conditioning', 'vo2max', 'sprint'] },
     { session_name: 'Strength Session III', focus: ['lower', 'upper_push', 'upper_pull'] },
-    { session_name: 'Conditioning Session III', focus: ['conditioning', 'vo2max', 'core'] },
+    { session_name: 'Conditioning Session III', focus: ['conditioning', 'vo2max', 'sprint', 'core'] },
     { session_name: 'Full Body Hybrid', focus: ['upper_push', 'upper_pull', 'lower', 'conditioning'] },
   ],
   'General Fitness': [
@@ -61,7 +61,7 @@ const ARCHETYPE_TEMPLATES: Record<Archetype, SessionTemplate[]> = {
     { session_name: 'Lower Body II', focus: ['lower', 'core'] },
     { session_name: 'Upper Body III', focus: ['upper_push', 'upper_pull', 'core'] },
     { session_name: 'Lower Body III', focus: ['lower', 'core'] },
-    { session_name: 'Full Body Finisher', focus: ['upper_push', 'upper_pull', 'lower', 'conditioning'] },
+    { session_name: 'Full Body Finisher', focus: ['upper_push', 'upper_pull', 'lower', 'conditioning', 'sprint'] },
   ],
   'Mobility Focus': [
     { session_name: 'Mobility Flow', focus: ['mobility', 'core'] },
